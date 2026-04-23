@@ -19,10 +19,10 @@ const model = ref<FormModel>({
 });
 
 const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
-  const { formRules } = useFormRules();
+  const { formRules, createRequiredRule } = useFormRules();
 
   return {
-    userName: formRules.userName,
+    userName: [createRequiredRule('请输入账号')],
     password: formRules.pwd
   };
 });
