@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   fetchBatchImportQuestions,
   fetchCreateQuestion,
+  fetchDeleteQuestion,
+  fetchQuestionList,
   fetchQuestionStats,
   fetchQuestionTypeList,
   fetchSubjectList,
@@ -23,6 +25,14 @@ const submitting = ref(false);
 const importVisible = ref(false);
 const importText = ref('');
 const importing = ref(false);
+
+const questions = ref<Exam.Question.QuestionListItem[]>([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
+const searchKeyword = ref('');
+const filterTypeId = ref<number | undefined>(undefined);
+const filterDifficulty = ref<'' | 'easy' | 'medium' | 'hard'>('');
 
 const form = reactive<Exam.Question.QuestionCreateRequest>({
   subject_id: '',
@@ -67,23 +77,69 @@ async function loadSubjects() {
 async function loadData() {
   if (!currentSubjectId.value) return;
   loading.value = true;
-  const [statsRes, typesRes] = await Promise.all([
+  const [statsRes, typesRes, listRes] = await Promise.all([
     fetchQuestionStats(currentSubjectId.value),
-    fetchQuestionTypeList(currentSubjectId.value)
+    fetchQuestionTypeList(currentSubjectId.value),
+    fetchQuestionList(currentSubjectId.value, {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      type_id: filterTypeId.value,
+      difficulty: filterDifficulty.value || undefined,
+      keyword: searchKeyword.value || undefined
+    })
   ]);
   if (!statsRes.error && statsRes.data) stats.value = statsRes.data;
   if (!typesRes.error && typesRes.data) questionTypes.value = typesRes.data;
+  if (!listRes.error && listRes.data) {
+    questions.value = listRes.data.items;
+    total.value = listRes.data.total;
+  }
   loading.value = false;
 }
 
 watch(currentSubjectId, () => {
+  currentPage.value = 1;
   loadData();
 });
+
+function handleSearch() {
+  currentPage.value = 1;
+  loadData();
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page;
+  loadData();
+}
+
+function handleSizeChange(size: number) {
+  pageSize.value = size;
+  currentPage.value = 1;
+  loadData();
+}
 
 function handleAdd() {
   resetForm();
   form.subject_id = currentSubjectId.value;
   dialogTitle.value = '新增题目';
+  dialogVisible.value = true;
+}
+
+function handleEdit(row: Exam.Question.QuestionListItem) {
+  resetForm();
+  editingId.value = row.id;
+  form.subject_id = currentSubjectId.value;
+  form.title = row.title;
+  form.answer = row.answer;
+  form.difficulty = row.difficulty;
+  form.score = row.score;
+  form.category = row.category || '';
+  form.sort_order = row.sort_order;
+  const matchedType = questionTypes.value.find(t => t.name === row.type?.name);
+  if (matchedType) {
+    form.type_id = matchedType.id;
+  }
+  dialogTitle.value = '编辑题目';
   dialogVisible.value = true;
 }
 
@@ -106,6 +162,19 @@ async function handleSubmit() {
     }
   }
   submitting.value = false;
+}
+
+async function handleDelete(row: Exam.Question.QuestionListItem) {
+  await ElMessageBox.confirm(`确定删除题目「${row.title.slice(0, 30)}...」吗？`, '删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  });
+  const { error } = await fetchDeleteQuestion(row.id);
+  if (!error) {
+    ElMessage.success('删除成功');
+    loadData();
+  }
 }
 
 function handleImport() {
@@ -136,11 +205,15 @@ async function handleImportSubmit() {
   importing.value = false;
 }
 
-const difficultyMap: Record<string, { label: string; type: '' | 'success' | 'warning' | 'danger' }> = {
+const difficultyMap: Record<string, { label: string; type: 'success' | 'warning' | 'danger' }> = {
   easy: { label: '简单', type: 'success' },
   medium: { label: '中等', type: 'warning' },
   hard: { label: '困难', type: 'danger' }
 };
+
+function truncate(text: string, len: number = 40) {
+  return text.length > len ? `${text.slice(0, len)}...` : text;
+}
 
 onMounted(loadSubjects);
 </script>
@@ -175,12 +248,78 @@ onMounted(loadSubjects);
         <div class="flex items-center justify-between">
           <p>题库管理</p>
           <div class="flex gap-8px">
+            <ElInput
+              v-model="searchKeyword"
+              placeholder="搜索题目"
+              clearable
+              style="width: 180px"
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
+            <ElSelect
+              v-model="filterTypeId"
+              placeholder="题型筛选"
+              clearable
+              style="width: 140px"
+              @change="handleSearch"
+            >
+              <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="t.id" />
+            </ElSelect>
+            <ElSelect
+              v-model="filterDifficulty"
+              placeholder="难度筛选"
+              clearable
+              style="width: 120px"
+              @change="handleSearch"
+            >
+              <ElOption label="简单" value="easy" />
+              <ElOption label="中等" value="medium" />
+              <ElOption label="困难" value="hard" />
+            </ElSelect>
             <ElButton @click="handleImport">批量导入</ElButton>
             <ElButton type="primary" :disabled="!currentSubjectId" @click="handleAdd">新增题目</ElButton>
           </div>
         </div>
       </template>
-      <div class="mb-12px text-gray-500">统计功能已加载，题目列表需后端提供列表API</div>
+      <ElTable v-loading="loading" :data="questions" border stripe>
+        <ElTableColumn prop="id" label="ID" width="70" />
+        <ElTableColumn label="题型" width="100" align="center">
+          <template #default="{ row }">
+            <ElTag size="small">{{ row.type?.display_name || row.type?.name || '-' }}</ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="题干" min-width="300">
+          <template #default="{ row }">
+            {{ truncate(row.title) }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="category" label="分类" width="120" />
+        <ElTableColumn label="难度" width="80" align="center">
+          <template #default="{ row }">
+            <ElTag :type="difficultyMap[row.difficulty]?.type" size="small">
+              {{ difficultyMap[row.difficulty]?.label || row.difficulty }}
+            </ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="score" label="分值" width="70" align="center" />
+        <ElTableColumn prop="answer" label="答案" width="80" align="center" />
+        <ElTableColumn label="操作" width="150" align="center" fixed="right">
+          <template #default="{ row }">
+            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
+            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+          </template>
+        </ElTableColumn>
+      </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @close="resetForm">

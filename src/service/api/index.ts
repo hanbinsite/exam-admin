@@ -8,5 +8,6 @@ export * from './exams';
 export * from './scores';
 export * from './users';
 export * from './rbac';
+export * from './knowledge-points';
 export * from './route';
 export * from './system-manage';

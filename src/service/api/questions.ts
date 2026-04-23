@@ -1,5 +1,19 @@
 import { request } from '../request';
 
+export function fetchQuestionList(subjectId: string, params: Exam.Question.QuestionListParams = {}) {
+  return request<Exam.Question.QuestionListData>({
+    url: `/admin/subjects/${subjectId}/questions`,
+    params: {
+      page: params.page,
+      pageSize: params.pageSize,
+      type_id: params.type_id,
+      difficulty: params.difficulty,
+      category: params.category,
+      keyword: params.keyword
+    }
+  });
+}
+
 export function fetchQuestionStats(subjectId: string) {
   return request<Exam.Question.QuestionStats>({
     url: `/subjects/${subjectId}/questions/stats`

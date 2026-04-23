@@ -27,3 +27,10 @@ export function fetchUpdateExam(examId: number, data: Partial<Exam.ExamModule.Ex
     data
   });
 }
+
+export function fetchDeleteExam(examId: number) {
+  return request<{ id: number }>({
+    url: `/admin/exams/${examId}`,
+    method: 'delete'
+  });
+}

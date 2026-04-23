@@ -107,6 +107,9 @@ declare module "@elegant-router/types" {
     "rbac_permissions": "/rbac/permissions";
     "rbac_roles": "/rbac/roles";
     "rbac_admins": "/rbac/admins";
+    "rbac_menus": "/rbac/menus";
+    "knowledge-points": "/knowledge-points";
+    "knowledge-points_list": "/knowledge-points/list";
   };
 
   /**
@@ -174,6 +177,7 @@ declare module "@elegant-router/types" {
     | "scores"
     | "users"
     | "rbac"
+    | "knowledge-points"
   >;
 
   /**
@@ -247,6 +251,8 @@ declare module "@elegant-router/types" {
     | "rbac_permissions"
     | "rbac_roles"
     | "rbac_admins"
+    | "rbac_menus"
+    | "knowledge-points_list"
   >;
 
   /**

@@ -6,7 +6,7 @@ import { SetupStoreId } from '@/enum';
 
 export const useExamStore = defineStore(`${SetupStoreId.Auth}-exam`, () => {
   const subjects = ref<Exam.Subject.Subject[]>([]);
-  const currentSubjectId = ref<string>(localStg.get('lastLoginUserId') || '');
+  const currentSubjectId = ref<string>(localStg.get('currentSubjectId') || '');
   const loading = ref(false);
 
   const currentSubject = computed(() =>

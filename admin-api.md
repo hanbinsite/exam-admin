@@ -98,7 +98,9 @@ POST /api/v1/admin/auth/login
 POST /api/v1/admin/auth/register
 ```
 
-**需 Admin JWT**
+**需 Admin JWT + `admin:manage` 权限**
+
+> 需已有管理员 JWT 且拥有 admin:manage 权限才能创建新管理员，防止未授权注册
 
 请求体：
 ```json
@@ -127,6 +129,36 @@ POST /api/v1/admin/auth/register
 ```
 
 > 需已有管理员 JWT 才能创建新管理员，防止未授权注册
+
+### 1.3 管理员修改密码
+
+```
+PUT /api/v1/admin/auth/password
+```
+
+**需 Admin JWT**
+
+请求体：
+```json
+{
+  "old_password": "OldPass123",
+  "new_password": "NewPass456"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| old_password | string | 是 | 当前密码 |
+| new_password | string | 是 | 新密码，最少 6 位 |
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {"message": "Password changed successfully"},
+  "message": "success"
+}
+```
 
 ---
 
@@ -268,7 +300,9 @@ GET /api/v1/subjects/{subject_id}
 POST /api/v1/subjects
 ```
 
-**需 Admin JWT + `subject:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `subject:manage` 权限**
+
+> 科目是顶级实体，创建科目不需要科目授权（创建时科目尚未存在）
 
 请求体：
 ```json
@@ -319,7 +353,9 @@ POST /api/v1/subjects
 PUT /api/v1/subjects/{subject_id}
 ```
 
-**需 Admin JWT + `subject:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `subject:manage` 权限**
+
+> 科目管理是全局操作，拥有权限即可操作任意科目
 
 请求体（部分更新，只传需要修改的字段）：
 ```json
@@ -345,7 +381,9 @@ PUT /api/v1/subjects/{subject_id}
 DELETE /api/v1/subjects/{subject_id}
 ```
 
-**需 Admin JWT + `subject:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `subject:manage` 权限**
+
+> 科目管理是全局操作，拥有权限即可操作任意科目
 
 成功响应：
 ```json
@@ -479,7 +517,57 @@ DELETE /api/v1/admin/question-types/{type_id}
 
 ## 6. 题目管理
 
-### 6.1 获取题目统计
+### 6.1 获取题目列表（管理端）
+
+```
+GET /api/v1/admin/subjects/{subject_id}/questions?page=1&pageSize=20&type_id={type_id}&difficulty={level}&category={category}&keyword={keyword}
+```
+
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
+
+> 管理员可分页查看科目下的题目列表，带答案用于管理
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| subject_id | string | 是 | 科目 ID（路径参数） |
+| page | int | 否 | 页码，默认 1 |
+| pageSize | int | 否 | 每页数量，默认 20，最大 100 |
+| type_id | int | 否 | 按题型 ID 过滤 |
+| difficulty | string | 否 | 按难度过滤（easy/medium/hard） |
+| category | string | 否 | 按分类过滤 |
+| keyword | string | 否 | 按题干关键词搜索（模糊匹配） |
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "type": {"name": "choice", "display_name": "单选题"},
+        "category": "职业素养",
+        "difficulty": "medium",
+        "title": "职业素养的构成...",
+        "score": 1.0,
+        "answer": "C",
+        "sort_order": 1
+      }
+    ],
+    "total": 210,
+    "page": 1,
+    "page_size": 20
+  },
+  "message": "success"
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| total | DB 实际总数（非当前页条数） |
+| answer | 管理端返回答案，用于编辑查看 |
+
+### 6.2 获取题目统计
 
 ```
 GET /api/v1/subjects/{subject_id}/questions/stats
@@ -487,29 +575,7 @@ GET /api/v1/subjects/{subject_id}/questions/stats
 
 **无需认证**
 
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "by_type": {
-      "choice": 174,
-      "multi_choice": 10,
-      "judgment": 36,
-      "fill_blank": 0,
-      "material": 2
-    },
-    "by_difficulty": {
-      "easy": 50,
-      "medium": 130,
-      "hard": 30
-    }
-  },
-  "message": "success"
-}
-```
-
-### 6.2 创建单道题目
+### 6.3 创建单道题目
 
 ```
 POST /api/v1/admin/questions
@@ -555,7 +621,7 @@ POST /api/v1/admin/questions
 | tags | array | 否 | 标签数组 |
 | sort_order | int | 否 | 排序序号 |
 
-### 6.3 更新题目
+### 6.4 更新题目
 
 ```
 PUT /api/v1/admin/questions/{question_id}
@@ -575,7 +641,7 @@ PUT /api/v1/admin/questions/{question_id}
 }
 ```
 
-### 6.4 删除题目
+### 6.5 删除题目
 
 ```
 DELETE /api/v1/admin/questions/{question_id}
@@ -585,7 +651,7 @@ DELETE /api/v1/admin/questions/{question_id}
 
 > 权限检查：先查询题目获取 subject_id，再校验科目级权限
 
-### 6.5 批量导入题目
+### 6.6 批量导入题目
 
 ```
 POST /api/v1/admin/questions/batch
@@ -642,12 +708,14 @@ POST /api/v1/admin/questions/batch
 GET /api/v1/subjects/{subject_id}/materials?type={type}
 ```
 
-**需 User JWT**
+**需 User JWT + 用户科目授权**
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | subject_id | string | 是 | 科目 ID（路径参数） |
 | type | string | 否 | 资料类型过滤：guide/practice_task/case_analysis |
+
+> 如果 `REQUIRE_USER_SUBJECT_AUTH=false`，则仅需 User JWT
 
 成功响应：
 ```json
@@ -749,7 +817,9 @@ DELETE /api/v1/admin/materials/{material_id}
 GET /api/v1/subjects/{subject_id}/exams
 ```
 
-**需 User JWT**
+**需 User JWT + 用户科目授权**
+
+> 如果 `REQUIRE_USER_SUBJECT_AUTH=false`，则仅需 User JWT
 
 成功响应：
 ```json
@@ -857,6 +927,38 @@ PUT /api/v1/admin/exams/{exam_id}
   "description": "更新后的说明"
 }
 ```
+
+### 8.5 删除考试配置（软删除）
+
+```
+DELETE /api/v1/admin/exams/{exam_id}
+```
+
+**需 Admin JWT + `exam:manage` 权限 + 考试所属科目授权**
+
+> 权限检查：先查询考试配置获取 subject_id，再校验科目级权限
+
+> 软删除：将 `is_active` 设置为 false，保留历史成绩和错题数据
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {"id": 1},
+  "message": "success"
+}
+```
+
+失败（有进行中的会话）：
+```json
+{
+  "code": 400,
+  "data": null,
+  "message": "Cannot delete exam with active sessions"
+}
+```
+
+> 安全机制：如果有学生正在考试（会话状态为 in_progress），则禁止删除
 
 ---
 
@@ -1503,12 +1605,156 @@ GET /api/v1/ping
 
 ---
 
+## 12. 知识点管理
+
+### 12.1 获取知识点树
+
+```
+GET /api/v1/admin/knowledge-points/subjects/{subject_id}
+```
+
+**需 Admin JWT**
+
+> 获取某科目的知识点树形结构
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "subject_id": "blockchain",
+      "parent_id": null,
+      "name": "区块链基础",
+      "description": "区块链基础知识",
+      "sort_order": 1,
+      "is_active": true,
+      "children": [
+        {
+          "id": 2,
+          "parent_id": 1,
+          "name": "共识机制",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "message": "success"
+}
+```
+
+### 12.2 创建知识点
+
+```
+POST /api/v1/admin/knowledge-points
+```
+
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
+
+请求体：
+```json
+{
+  "subject_id": "blockchain",
+  "parent_id": null,
+  "name": "区块链基础",
+  "description": "区块链基础知识",
+  "sort_order": 1
+}
+```
+
+### 12.3 更新知识点
+
+```
+PUT /api/v1/admin/knowledge-points/{kp_id}
+```
+
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
+
+### 12.4 删除知识点
+
+```
+DELETE /api/v1/admin/knowledge-points/{kp_id}
+```
+
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
+
+> 如果有子知识点或关联题目，则无法删除
+
+### 12.5 为题目分配知识点
+
+```
+POST /api/v1/admin/knowledge-points/assign
+```
+
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
+
+请求体：
+```json
+{
+  "question_id": 1,
+  "knowledge_point_ids": [1, 2, 3],
+  "primary_id": 1
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| question_id | 题目 ID |
+| knowledge_point_ids | 关联的知识点 ID 列表 |
+| primary_id | 主要知识点 ID（可选） |
+
+### 12.6 获取题目关联的知识点
+
+```
+GET /api/v1/admin/knowledge-points/questions/{question_id}
+```
+
+**需 Admin JWT**
+
+---
+
+## 13. 用户管理扩展
+
+### 13.1 重置用户密码
+
+```
+PUT /api/v1/admin/users/{user_id}/reset-password
+```
+
+**需 Admin JWT + `admin:manage` 权限**
+
+请求体：
+```json
+{
+  "user_id": "abc123",
+  "new_password": "NewPass123"
+}
+```
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {"message": "Password reset successfully"},
+  "message": "success"
+}
+```
+
+---
+
 ## 权限检查汇总
 
 | 端点 | 权限 code | 科目级检查 |
 |------|-----------|-----------|
 | `GET /admin/dashboard` | dashboard:view | 否 |
 | `GET /admin/users` | score:view | 否 |
+| `DELETE /admin/users/{id}` | admin:manage | 否 |
+| `PUT /admin/users/{id}/reset-password` | admin:manage | 否 |
+| `POST /subjects` | subject:manage | 否（全局权限） |
+| `PUT /subjects/{id}` | subject:manage | 否（全局权限） |
+| `DELETE /subjects/{id}` | subject:manage | 否（全局权限） |
+| `GET /admin/subjects/{id}/questions` | question:manage | path.subject_id |
 | `POST /admin/question-types` | question_type:manage | body.subject_id |
 | `PUT /admin/question-types/{id}` | question_type:manage | 查实体→subject_id |
 | `DELETE /admin/question-types/{id}` | question_type:manage | 查实体→subject_id |
@@ -1521,8 +1767,10 @@ GET /api/v1/ping
 | `DELETE /admin/materials/{id}` | material:manage | 查实体→subject_id |
 | `POST /admin/exams` | exam:manage | body.subject_id |
 | `PUT /admin/exams/{id}` | exam:manage | 查实体→subject_id |
+| `DELETE /admin/exams/{id}` | exam:manage | 查实体→subject_id |
 | `GET /admin/scores/stats` | score:view | 否 |
 | `GET /admin/scores/list` | score:view | 否 |
+| 知识点管理接口 | question:manage | 查实体→subject_id |
 | RBAC 全部管理接口 | admin:manage | 否 |
 
 ---
@@ -1537,4 +1785,31 @@ GET /api/v1/ping
 | 403 | 权限不足（缺少权限 code / 无科目授权 / Admin JWT 访问 User 端点） |
 | 404 | 资源不存在 |
 | 409 | 冲突（ID 已存在 / 删除有关联数据） |
+| 429 | 请求过于频繁（触发 Rate Limit） |
 | 500 | 服务器内部错误 |
+
+---
+
+## Rate Limiting（接口限流）
+
+系统对敏感接口实施限流保护，基于 IP 地址 + Redis 计数：
+
+| 端点 | 限制 | 时间窗口 |
+|------|------|---------|
+| `/auth/login` | 10 次 | 60 秒 |
+| `/auth/register` | 5 次 | 60 秒 |
+| `/admin/auth/login` | 10 次 | 60 秒 |
+| `/admin/auth/register` | 3 次 | 60 秒 |
+| `/exams/session/*` | 20 次 | 60 秒 |
+| 其他端点 | 100 次 | 60 秒 |
+
+**排除限流的端点**：`/health`、`/ping`、`/docs`、`/openapi.json`
+
+**触发限流响应**：
+```json
+{
+  "detail": "Rate limit exceeded. Max 10 requests per 60 seconds."
+}
+```
+
+> 若未配置 Redis（REDIS_URL 为空），则限流功能自动禁用

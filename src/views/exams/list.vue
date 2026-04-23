@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import { fetchCreateExam, fetchExamList, fetchSubjectList, fetchUpdateExam } from '@/service/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchSubjectList, fetchUpdateExam } from '@/service/api';
 
 defineOptions({ name: 'ExamList' });
 
@@ -97,9 +97,22 @@ async function handleSubmit() {
 }
 
 async function handleToggleActive(row: Exam.ExamModule.ExamConfig) {
-  const { error } = await fetchUpdateExam(row.id, { ...form, is_active: !row.is_active } as any);
+  const { error } = await fetchUpdateExam(row.id, { is_active: !row.is_active });
   if (!error) {
     ElMessage.success('状态更新成功');
+    loadExams();
+  }
+}
+
+async function handleDelete(row: Exam.ExamModule.ExamConfig) {
+  await ElMessageBox.confirm(`确定删除考试「${row.name}」吗？删除后将无法恢复。`, '删除确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  });
+  const { error } = await fetchDeleteExam(row.id);
+  if (!error) {
+    ElMessage.success('删除成功');
     loadExams();
   }
 }
@@ -132,9 +145,10 @@ onMounted(loadSubjects);
             <ElSwitch :model-value="row.is_active" @change="handleToggleActive(row)" />
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="120" align="center">
+        <ElTableColumn label="操作" width="180" align="center">
           <template #default="{ row }">
             <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
+            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

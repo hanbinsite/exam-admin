@@ -13,7 +13,7 @@ declare namespace Exam {
       name: string;
       email: string;
       role: 'super_admin' | 'admin' | 'teacher';
-      buttons: string[];
+      buttons?: string[];
     }
 
     interface LoginToken {
@@ -100,6 +100,33 @@ declare namespace Exam {
   }
 
   namespace Question {
+    interface QuestionListItem {
+      id: number;
+      type: { name: string; display_name: string };
+      category?: string;
+      difficulty: 'easy' | 'medium' | 'hard';
+      title: string;
+      score: number;
+      answer: string;
+      sort_order?: number;
+    }
+
+    interface QuestionListData {
+      items: QuestionListItem[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+
+    interface QuestionListParams {
+      page?: number;
+      pageSize?: number;
+      type_id?: number;
+      difficulty?: 'easy' | 'medium' | 'hard';
+      category?: string;
+      keyword?: string;
+    }
+
     interface Question {
       id: number;
       subject_id: string;
@@ -196,6 +223,7 @@ declare namespace Exam {
       duration?: number;
       question_rules: Record<string, QuestionRule>;
       scoring_rules: Record<string, number>;
+      is_active?: boolean;
     }
   }
 
@@ -287,6 +315,34 @@ declare namespace Exam {
     interface RbacInitResult {
       permissions_created: number;
       roles_created: number;
+    }
+  }
+
+  namespace KnowledgePoint {
+    interface KnowledgePoint {
+      id: number;
+      subject_id: string;
+      parent_id: number | null;
+      name: string;
+      description?: string;
+      sort_order: number;
+      is_active: boolean;
+      children?: KnowledgePoint[];
+    }
+
+    interface KnowledgePointCreateRequest {
+      subject_id: string;
+      parent_id?: number | null;
+      name: string;
+      description?: string;
+      sort_order?: number;
+      is_active?: boolean;
+    }
+
+    interface KnowledgePointAssignRequest {
+      question_id: number;
+      knowledge_point_ids: number[];
+      primary_id?: number;
     }
   }
 }

@@ -18,12 +18,11 @@ interface FormModel {
 }
 
 const model = ref<FormModel>({
-  userName: 'Soybean',
-  password: '123456'
+  userName: 'admin@exam.com',
+  password: 'Qkl123456'
 });
 
 const rules = computed<Record<keyof FormModel, App.Global.FormRule[]>>(() => {
-  // inside computed to make locale ref, if not apply i18n, you can define it without computed
   const { formRules } = useFormRules();
 
   return {
@@ -37,7 +36,7 @@ async function handleSubmit() {
   await authStore.login(model.value.userName, model.value.password);
 }
 
-type AccountKey = 'super' | 'admin' | 'user';
+type AccountKey = 'super' | 'admin' | 'teacher';
 
 interface Account {
   key: AccountKey;
@@ -49,21 +48,21 @@ interface Account {
 const accounts = computed<Account[]>(() => [
   {
     key: 'super',
-    label: $t('page.login.pwdLogin.superAdmin'),
-    userName: 'Super',
-    password: '123456'
+    label: '超级管理员',
+    userName: 'admin@exam.com',
+    password: 'Qkl123456'
   },
   {
     key: 'admin',
-    label: $t('page.login.pwdLogin.admin'),
-    userName: 'Admin',
-    password: '123456'
+    label: '管理员',
+    userName: 'admin@exam.com',
+    password: 'Qkl123456'
   },
   {
-    key: 'user',
-    label: $t('page.login.pwdLogin.user'),
-    userName: 'User',
-    password: '123456'
+    key: 'teacher',
+    label: '教师',
+    userName: 'admin@exam.com',
+    password: 'Qkl123456'
   }
 ]);
 

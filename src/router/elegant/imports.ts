@@ -70,4 +70,6 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   rbac_permissions: () => import("@/views/rbac/permissions.vue"),
   rbac_roles: () => import("@/views/rbac/roles.vue"),
   rbac_admins: () => import("@/views/rbac/admins.vue"),
+  rbac_menus: () => import("@/views/rbac/menus.vue"),
+  "knowledge-points_list": () => import("@/views/knowledge-points/list.vue"),
 };

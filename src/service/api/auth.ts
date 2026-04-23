@@ -16,6 +16,14 @@ export function fetchAdminRegister(name: string, email: string, password: string
   });
 }
 
+export function fetchChangePassword(oldPassword: string, newPassword: string) {
+  return request<{ message: string }>({
+    url: '/admin/auth/password',
+    method: 'put',
+    data: { old_password: oldPassword, new_password: newPassword }
+  });
+}
+
 export function fetchCustomBackendError(code: string, msg: string) {
   return request<null>({
     url: '/admin/auth/error',

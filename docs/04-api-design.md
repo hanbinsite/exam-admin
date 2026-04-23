@@ -88,6 +88,9 @@ export const authApi = {
   
   register: (name: string, email: string, password: string) =>
     api.post<LoginResponse>('/admin/auth/register', { name, email, password }),
+  
+  changePassword: (oldPassword: string, newPassword: string) =>
+    api.put<{ message: string }>('/admin/auth/password', { old_password: oldPassword, new_password: newPassword }),
 };
 ```
 
@@ -170,7 +173,7 @@ export const questionTypesApi = {
 
 ```typescript
 import { api } from '../client';
-import type { Question, QuestionCreateRequest, QuestionStats } from '@/typings/business';
+import type { Question, QuestionCreateRequest, QuestionStats, QuestionListData, QuestionListParams } from '@/typings/business';
 
 interface BatchImportResult {
   created: number;
@@ -178,6 +181,9 @@ interface BatchImportResult {
 }
 
 export const questionsApi = {
+  list: (subjectId: string, params: QuestionListParams) =>
+    api.get<QuestionListData>(`/admin/subjects/${subjectId}/questions`, params),
+  
   stats: (subjectId: string) =>
     api.get<QuestionStats>(`/subjects/${subjectId}/questions/stats`),
   
@@ -241,6 +247,9 @@ export const examsApi = {
   
   update: (examId: number, data: Partial<ExamCreateRequest>) =>
     api.put<Exam>(`/admin/exams/${examId}`, data),
+  
+  delete: (examId: number) =>
+    api.delete<{ id: number }>(`/admin/exams/${examId}`),
 };
 ```
 
@@ -286,6 +295,9 @@ interface UserListData {
 export const usersApi = {
   list: (page: number = 1, pageSize: number = 20) =>
     api.get<UserListData>('/admin/users', { page, pageSize }),
+  
+  resetPassword: (userId: string, newPassword: string) =>
+    api.put<{ message: string }>(`/admin/users/${userId}/reset-password`, { user_id: userId, new_password: newPassword }),
 };
 ```
 

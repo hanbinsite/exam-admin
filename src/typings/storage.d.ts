@@ -42,5 +42,7 @@ declare namespace StorageType {
     lastLoginUserId: string;
     /** The admin info from exam-server */
     adminInfo: Exam.Auth.AdminInfo;
+    /** The current selected subject id */
+    currentSubjectId: string;
   }
 }

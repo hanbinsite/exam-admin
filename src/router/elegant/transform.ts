@@ -252,7 +252,10 @@ const routeMap: RouteMap = {
   "rbac": "/rbac",
   "rbac_permissions": "/rbac/permissions",
   "rbac_roles": "/rbac/roles",
-  "rbac_admins": "/rbac/admins"
+  "rbac_admins": "/rbac/admins",
+  "rbac_menus": "/rbac/menus",
+  "knowledge-points": "/knowledge-points",
+  "knowledge-points_list": "/knowledge-points/list"
 };
 
 /**
