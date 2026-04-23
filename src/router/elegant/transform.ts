@@ -233,7 +233,26 @@ const routeMap: RouteMap = {
   "plugin_tables_vtable": "/plugin/tables/vtable",
   "plugin_typeit": "/plugin/typeit",
   "plugin_video": "/plugin/video",
-  "user-center": "/user-center"
+  "user-center": "/user-center",
+  "dashboard": "/dashboard",
+  "subjects": "/subjects",
+  "subjects_list": "/subjects/list",
+  "question-types": "/question-types",
+  "question-types_list": "/question-types/list",
+  "questions": "/questions",
+  "questions_list": "/questions/list",
+  "materials": "/materials",
+  "materials_list": "/materials/list",
+  "exams": "/exams",
+  "exams_list": "/exams/list",
+  "scores": "/scores",
+  "scores_list": "/scores/list",
+  "users": "/users",
+  "users_list": "/users/list",
+  "rbac": "/rbac",
+  "rbac_permissions": "/rbac/permissions",
+  "rbac_roles": "/rbac/roles",
+  "rbac_admins": "/rbac/admins"
 };
 
 /**

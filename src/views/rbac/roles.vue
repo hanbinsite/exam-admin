@@ -1,0 +1,189 @@
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import {
+  fetchAssignRolePermissions,
+  fetchCreateRole,
+  fetchDeleteRole,
+  fetchPermissionList,
+  fetchRoleList,
+  fetchRolePermissions,
+  fetchUpdateRole
+} from '@/service/api';
+
+defineOptions({ name: 'RbacRoles' });
+
+const roles = ref<Exam.RBAC.Role[]>([]);
+const permissions = ref<Exam.RBAC.Permission[]>([]);
+const loading = ref(false);
+const dialogVisible = ref(false);
+const dialogTitle = ref('新增角色');
+const submitting = ref(false);
+const permDialogVisible = ref(false);
+const permSubmitting = ref(false);
+
+const form = reactive({
+  name: '',
+  code: '',
+  description: '',
+  is_super: false
+});
+
+const editingId = ref<number | null>(null);
+const currentRoleCode = ref('');
+const checkedPermissions = ref<string[]>([]);
+
+async function loadRoles() {
+  loading.value = true;
+  const [rolesRes, permsRes] = await Promise.all([fetchRoleList(true), fetchPermissionList()]);
+  if (!rolesRes.error && rolesRes.data) roles.value = rolesRes.data;
+  if (!permsRes.error && permsRes.data) permissions.value = permsRes.data;
+  loading.value = false;
+}
+
+function handleAdd() {
+  form.name = '';
+  form.code = '';
+  form.description = '';
+  form.is_super = false;
+  editingId.value = null;
+  dialogTitle.value = '新增角色';
+  dialogVisible.value = true;
+}
+
+function handleEdit(row: Exam.RBAC.Role) {
+  editingId.value = row.id;
+  form.name = row.name;
+  form.code = row.code;
+  form.description = '';
+  form.is_super = row.is_super;
+  dialogTitle.value = '编辑角色';
+  dialogVisible.value = true;
+}
+
+async function handleSubmit() {
+  submitting.value = true;
+  if (editingId.value) {
+    const { error } = await fetchUpdateRole(editingId.value, form);
+    if (!error) {
+      ElMessage.success('更新成功');
+      dialogVisible.value = false;
+      loadRoles();
+    }
+  } else {
+    const { error } = await fetchCreateRole(form);
+    if (!error) {
+      ElMessage.success('创建成功');
+      dialogVisible.value = false;
+      loadRoles();
+    }
+  }
+  submitting.value = false;
+}
+
+async function handleDelete(row: Exam.RBAC.Role) {
+  if (row.is_super) {
+    ElMessage.warning('超级管理员角色不可删除');
+    return;
+  }
+  await ElMessageBox.confirm(`确定删除角色"${row.name}"？`, '确认删除', { type: 'warning' });
+  const { error } = await fetchDeleteRole(row.id);
+  if (!error) {
+    ElMessage.success('删除成功');
+    loadRoles();
+  }
+}
+
+async function handlePermissionAssign(row: Exam.RBAC.Role) {
+  currentRoleCode.value = row.code;
+  const { data, error } = await fetchRolePermissions(row.code);
+  if (!error && data) {
+    checkedPermissions.value = data.map(p => p.code);
+  } else {
+    checkedPermissions.value = [];
+  }
+  permDialogVisible.value = true;
+}
+
+async function handlePermSubmit() {
+  permSubmitting.value = true;
+  const { error } = await fetchAssignRolePermissions(currentRoleCode.value, checkedPermissions.value);
+  if (!error) {
+    ElMessage.success('权限分配成功');
+    permDialogVisible.value = false;
+  }
+  permSubmitting.value = false;
+}
+
+onMounted(loadRoles);
+</script>
+
+<template>
+  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
+    <ElCard>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <p>角色管理</p>
+          <ElButton type="primary" @click="handleAdd">新增角色</ElButton>
+        </div>
+      </template>
+      <ElTable v-loading="loading" :data="roles" border stripe>
+        <ElTableColumn prop="id" label="ID" width="80" />
+        <ElTableColumn prop="code" label="标识" width="150" />
+        <ElTableColumn prop="name" label="名称" min-width="150" />
+        <ElTableColumn label="超管" width="80" align="center">
+          <template #default="{ row }">
+            <ElTag :type="row.is_super ? 'danger' : 'info'">{{ row.is_super ? '是' : '否' }}</ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="激活" width="80" align="center">
+          <template #default="{ row }">
+            <ElTag :type="row.is_active ? 'success' : 'warning'">{{ row.is_active ? '是' : '否' }}</ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="250" align="center">
+          <template #default="{ row }">
+            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
+            <ElButton type="warning" link size="small" @click="handlePermissionAssign(row)">权限</ElButton>
+            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+          </template>
+        </ElTableColumn>
+      </ElTable>
+    </ElCard>
+
+    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="450px">
+      <ElForm :model="form" label-width="80px">
+        <ElFormItem label="标识" required>
+          <ElInput v-model="form.code" :disabled="!!editingId" placeholder="如 admin" />
+        </ElFormItem>
+        <ElFormItem label="名称" required>
+          <ElInput v-model="form.name" placeholder="如 管理员" />
+        </ElFormItem>
+        <ElFormItem label="描述">
+          <ElInput v-model="form.description" type="textarea" :rows="2" />
+        </ElFormItem>
+        <ElFormItem label="超管">
+          <ElSwitch v-model="form.is_super" />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="dialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="permDialogVisible" title="分配权限" width="500px">
+      <ElCheckboxGroup v-model="checkedPermissions">
+        <ElCheckbox v-for="p in permissions" :key="p.code" :value="p.code" class="mb-8px w-full">
+          {{ p.name }} ({{ p.code }})
+        </ElCheckbox>
+      </ElCheckboxGroup>
+      <template #footer>
+        <ElButton @click="permDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="permSubmitting" @click="handlePermSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+  </div>
+</template>
+
+<style scoped></style>

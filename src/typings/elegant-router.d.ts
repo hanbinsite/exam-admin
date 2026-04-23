@@ -39,6 +39,7 @@ declare module "@elegant-router/types" {
     "alova_request": "/alova/request";
     "alova_scenes": "/alova/scenes";
     "alova_user": "/alova/user";
+    "dashboard": "/dashboard";
     "function": "/function";
     "function_hide-child": "/function/hide-child";
     "function_hide-child_one": "/function/hide-child/one";
@@ -88,6 +89,24 @@ declare module "@elegant-router/types" {
     "plugin_typeit": "/plugin/typeit";
     "plugin_video": "/plugin/video";
     "user-center": "/user-center";
+    "subjects": "/subjects";
+    "subjects_list": "/subjects/list";
+    "question-types": "/question-types";
+    "question-types_list": "/question-types/list";
+    "questions": "/questions";
+    "questions_list": "/questions/list";
+    "materials": "/materials";
+    "materials_list": "/materials/list";
+    "exams": "/exams";
+    "exams_list": "/exams/list";
+    "scores": "/scores";
+    "scores_list": "/scores/list";
+    "users": "/users";
+    "users_list": "/users/list";
+    "rbac": "/rbac";
+    "rbac_permissions": "/rbac/permissions";
+    "rbac_roles": "/rbac/roles";
+    "rbac_admins": "/rbac/admins";
   };
 
   /**
@@ -138,6 +157,7 @@ declare module "@elegant-router/types" {
     | "500"
     | "about"
     | "alova"
+    | "dashboard"
     | "function"
     | "home"
     | "iframe-page"
@@ -146,6 +166,14 @@ declare module "@elegant-router/types" {
     | "multi-menu"
     | "plugin"
     | "user-center"
+    | "subjects"
+    | "question-types"
+    | "questions"
+    | "materials"
+    | "exams"
+    | "scores"
+    | "users"
+    | "rbac"
   >;
 
   /**
@@ -173,6 +201,7 @@ declare module "@elegant-router/types" {
     | "alova_request"
     | "alova_scenes"
     | "alova_user"
+    | "dashboard"
     | "function_hide-child_one"
     | "function_hide-child_three"
     | "function_hide-child_two"
@@ -208,6 +237,16 @@ declare module "@elegant-router/types" {
     | "plugin_typeit"
     | "plugin_video"
     | "user-center"
+    | "subjects_list"
+    | "question-types_list"
+    | "questions_list"
+    | "materials_list"
+    | "exams_list"
+    | "scores_list"
+    | "users_list"
+    | "rbac_permissions"
+    | "rbac_roles"
+    | "rbac_admins"
   >;
 
   /**
