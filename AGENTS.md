@@ -33,68 +33,83 @@ exam-admin/
 │   ├── api/                 # API调用层（替换mock为真实API）
 │   │   ├── client.ts        # Axios实例 + JWT拦截器
 │   │   ├── exam-server/     # exam-server API模块
-│   │   │   ├── questions.ts
-│   │   │   ├── auth.ts
-│   │   │   ├── scores.ts
-│   │   │   ├── exams.ts
-│   │   │   ├── progress.ts
-│   │   │   ├── case-analysis.ts
-│   │   │   ├── practice.ts
+│   │   │   ├── auth.ts      # 管理员认证
+│   │   │   ├── dashboard.ts # 仪表盘
+│   │   │   ├── subjects.ts  # 科目管理
+│   │   │   ├── question-types.ts  # 题型管理
+│   │   │   ├── questions.ts # 题目管理
+│   │   │   ├── materials.ts # 学习资料
+│   │   │   ├── exams.ts     # 考试配置
+│   │   │   ├── scores.ts    # 成绩统计
+│   │   │   ├── users.ts     # 用户管理
+│   │   │   └── rbac.ts      # RBAC权限管理
 │   ├── constants/           # 业务常量
-│   ├── dao/                  # 数据访问（SoybeanAdmin内置）
+│   │   ├── permissions.ts   # 权限code常量
+│   │   └── question-types.ts # 题型预设
+│   ├── dao/                 # 数据访问（SoybeanAdmin内置）
 │   ├── layouts/             # 布局组件（内置，可直接使用）
 │   ├── plugins/             # 插件配置
 │   ├── router/              # 路由（Elegant Router自动生成）
 │   │   ├── routes/          # 路由模块
-│   │   │   ├── exam-server/ # 我们新增的业务路由模块
+│   │   │   ├── exam-server/ # 业务路由模块
 │   ├── store/               # Pinia状态管理（内置auth store）
 │   │   ├── modules/
-│   │   │   ├── auth.ts      # 认证状态（内置，修改为调exam-server）
-│   │   │   ├── exam.ts      # 新增：考试相关状态
+│   │   │   ├── auth.ts      # 认证状态（改造：调 /admin/auth/login）
+│   │   │   ├── exam.ts      # 考试相关状态（科目选择等）
 │   ├── theme/               # 主题设置（内置）
 │   ├── typings/             # 类型定义
-│   │   ├── api.d.ts         # API类型（新增exam-server接口类型）
+│   │   ├── api.d.ts         # API类型
 │   │   ├── business.d.ts    # 业务类型
 │   ├── utils/               # 工具函数
 │   ├── views/               # 页面视图
 │   │   ├── _builtin/        # 内置页面（登录、403、404等）
-│   │   ├── dashboard/       # 仪表盘（改造为考试数据概览）
-│   │   ├── questions/       # 新增：题库管理
-│   │   │   ├── list.vue     # 题目列表
-│   │   │   ├── detail.vue   # 题目详情/编辑
-│   │   │   ├── import.vue   # 批量导入
-│   │   ├── case-analysis/   # 新增：案例分析管理
+│   │   ├── dashboard/       # 仪表盘
+│   │   │   └── index.vue
+│   │   ├── subjects/        # 科目管理
 │   │   │   ├── list.vue
-│   │   ├── practice/        # 新增：实操管理
+│   │   │   └── detail.vue
+│   │   ├── question-types/  # 题型管理
+│   │   │   └── list.vue
+│   │   ├── questions/       # 题库管理
 │   │   │   ├── list.vue
-│   │   ├── scores/          # 新增：成绩统计
-│   │   │   ├── list.vue     # 成绩列表
-│   │   │   ├── stats.vue    # 统计图表
-│   │   ├── progress/        # 新增：答题进度
+│   │   │   ├── detail.vue
+│   │   │   └── import.vue
+│   │   ├── materials/       # 学习资料
 │   │   │   ├── list.vue
-│   │   ├── exams/           # 新增：考试配置
+│   │   │   └── detail.vue
+│   │   ├── exams/           # 考试配置
 │   │   │   ├── list.vue
-│   │   ├── users/           # 新增：用户管理
+│   │   │   └── detail.vue
+│   │   ├── scores/          # 成绩统计
 │   │   │   ├── list.vue
-│   ├── App.vue
-│   ├── main.ts
-├── .env                      # 开发环境变量
-├── .env.prod                 # 生产环境变量
-├── .env.test                 # 测试环境变量
-├── uno.config.ts             # UnoCSS配置
-├── vite.config.ts            # Vite配置
+│   │   │   └── stats.vue
+│   │   ├── users/           # 用户管理
+│   │   │   └── list.vue
+│   │   ├── rbac/            # RBAC权限管理
+│   │   │   ├── permissions.vue
+│   │   │   ├── roles.vue
+│   │   │   ├── menus.vue
+│   │   │   └── admins.vue
+│   │   └── progress/        # 答题进度（开发中）
+│   │       └── list.vue
+├── .env                     # 开发环境变量
+├── .env.prod                # 生产环境变量
+├── .env.test                # 测试环境变量
+├── uno.config.ts            # UnoCSS配置
+├── vite.config.ts           # Vite配置
 ├── tsconfig.json
 ├── package.json
 ├── pnpm-workspace.yaml
-├── vercel.json               # Vercel部署配置
+├── vercel.json              # Vercel部署配置
 ├── AGENTS.md
+├── admin-api.md             # 后端API完整文档
 └── docs/
     ├── 01-overview.md
     ├── 02-feature-design.md
     ├── 03-architecture.md
     ├── 04-api-design.md
     ├── 05-dev-guide.md
-    ├── 06-task-list-phase1.md
+    └── 06-task-list-phase1.md
 ```
 
 ## Conventions
@@ -102,15 +117,21 @@ exam-admin/
 - pnpm monorepo 架构（必须用pnpm，不能用npm/yarn）
 - SoybeanAdmin 内置的 Elegant Router（文件路由自动生成）
 - SoybeanAdmin 内置的 auth store + 权限路由系统
-- API: Axios + JWT Bearer token
+- API: Axios + Admin JWT Bearer token
 - 中文界面
 
 ## Principles
 - 基于 SoybeanAdmin 定制，不重写基础设施（登录/权限/路由/主题全保留）
 - 只替换 mock 数据 → 真实 exam-server API
-- 只新增业务页面（题库/成绩/考试配置等）
-- 修改 auth store 指向 exam-server 的 /api/auth
-- 修改路由权限配置指向 exam-server 的动态菜单
+- 只新增业务页面（题库/成绩/考试配置/RBAC等）
+- 修改 auth store 指向 exam-server 的 /admin/auth/login
+- 修改路由权限配置指向 exam-server 的动态菜单（RBAC）
+
+## API Info
+- Base URL: `https://exam-server.hanbin123.com/api/v1`
+- Auth: Admin JWT Bearer Token，7天有效期
+- Response: `{ code: int, data: T, message: str }`
+- 详细文档: [admin-api.md](admin-api.md)
 
 ## Pitfalls
 - Don't use npm or yarn — 必须pnpm（monorepo要求）
@@ -124,7 +145,7 @@ exam-admin/
 - Platform: Vercel (same account as exam frontend)
 - Auto-deploy: GitHub push → Vercel builds → deploys
 - Gitee → origin (日常开发), GitHub → 部署时push
-- Environment: VITE_API_BASE_URL = https://exam-server.onrender.com/api
+- Environment: VITE_API_BASE_URL = https://exam-server.hanbin123.com/api/v1
 - Domain: exam-admin.vercel.app
 
 ## Vercel Free Quota Check
@@ -133,6 +154,7 @@ exam-admin/
 - Edge Requests + Bandwidth shared → enough ✓
 
 ## Doc Index
+- [admin-api.md](admin-api.md) — 后端API完整文档
 - [01-overview.md](docs/01-overview.md) — Vision, template choice, priorities
 - [02-feature-design.md](docs/02-feature-design.md) — Page specs with data interfaces
 - [03-architecture.md](docs/03-architecture.md) — Tech stack, directory tree
