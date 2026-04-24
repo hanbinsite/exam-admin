@@ -130,7 +130,46 @@ POST /api/v1/admin/auth/register
 
 > 需已有管理员 JWT 才能创建新管理员，防止未授权注册
 
-### 1.3 管理员修改密码
+### 1.3 获取当前管理员信息
+
+```
+GET /api/v1/admin/auth/me
+```
+
+**需 Admin JWT**
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {
+    "id": "admin_default",
+    "name": "Default Admin",
+    "email": "admin@exam.com",
+    "role": "admin",
+    "role_info": {"code": "super_admin", "name": "超级管理员", "is_super": true}
+  },
+  "message": "success"
+}
+```
+
+### 1.4 修改管理员个人信息
+
+```
+PUT /api/v1/admin/auth/me
+```
+
+**需 Admin JWT**
+
+请求体（部分更新）：
+```json
+{
+  "name": "新名称",
+  "email": "newemail@exam.com"
+}
+```
+
+### 1.5 管理员修改密码
 
 ```
 PUT /api/v1/admin/auth/password
@@ -159,6 +198,76 @@ PUT /api/v1/admin/auth/password
   "message": "success"
 }
 ```
+
+### 1.6 获取当前管理员菜单（前端路由）
+
+```
+GET /api/v1/admin/auth/menus
+```
+
+**需 Admin JWT**
+
+> 返回当前管理员角色对应的菜单树，格式为前端 ElegantConstRoute
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {
+    "routes": [
+      {
+        "name": "dashboard",
+        "path": "/dashboard",
+        "meta": {
+          "title": "仪表盘",
+          "i18nKey": "route.dashboard",
+          "icon": "mdi:monitor-dashboard",
+          "order": 1
+        }
+      },
+      {
+        "name": "subjects",
+        "path": "/subjects",
+        "meta": {
+          "title": "科目管理",
+          "i18nKey": "route.subjects",
+          "icon": "mdi:book-open-variant",
+          "order": 2
+        },
+        "children": [
+          {
+            "name": "subjects_list",
+            "path": "/subjects/list",
+            "meta": {
+              "title": "科目列表",
+              "i18nKey": "route.subjects_list",
+              "icon": "mdi:format-list-bulleted",
+              "order": 1
+            }
+          }
+        ]
+      }
+    ],
+    "home": "dashboard"
+  },
+  "message": "success"
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| routes.name | 路由标识（route_key），前端靠此匹配组件 |
+| routes.path | 路由路径 |
+| routes.meta.title | 菜单显示标题 |
+| routes.meta.i18nKey | 国际化 key |
+| routes.meta.icon | Iconify 图标名 |
+| routes.meta.order | 排序，越小越靠前 |
+| routes.meta.hideInMenu | 是否在侧边栏隐藏 |
+| routes.meta.href | 外链地址 |
+| routes.children | 子菜单列表 |
+| home | 登录后默认跳转页 |
+
+> super_admin 返回所有菜单；其他角色根据 role_menus 过滤
 
 ---
 
@@ -198,7 +307,7 @@ GET /api/v1/admin/dashboard
 ### 3.1 分页获取用户列表
 
 ```
-GET /api/v1/admin/users?page=1&pageSize=20
+GET /api/v1/admin/users?page=1&pageSize=20&keyword=张
 ```
 
 **需 Admin JWT + `score:view` 权限**
@@ -207,6 +316,7 @@ GET /api/v1/admin/users?page=1&pageSize=20
 |------|------|------|------|
 | page | int | 否 | 页码，默认 1 |
 | pageSize | int | 否 | 每页数量，默认 20，最大 100 |
+| keyword | string | 否 | 按姓名或邮箱搜索（模糊匹配） |
 
 成功响应：
 ```json
@@ -234,6 +344,42 @@ GET /api/v1/admin/users?page=1&pageSize=20
 | total | DB 实际总用户数（非当前页条数），支持正确分页 |
 | page | 当前页码 |
 | page_size | 每页数量 |
+
+### 3.2 查看用户详情
+
+```
+GET /api/v1/admin/users/{user_id}
+```
+
+**需 Admin JWT + `score:view` 权限**
+
+### 3.3 激活已停用用户
+
+```
+PUT /api/v1/admin/users/{user_id}/activate
+```
+
+**需 Admin JWT + `admin:manage` 权限**
+
+> 将 `is_active` 设置为 true，恢复用户登录权限
+
+### 3.4 重置用户密码
+
+```
+PUT /api/v1/admin/users/{user_id}/reset-password
+```
+
+**需 Admin JWT + `admin:manage` 权限**
+
+### 3.5 停用用户
+
+```
+DELETE /api/v1/admin/users/{user_id}
+```
+
+**需 Admin JWT + `admin:manage` 权限**
+
+> 软删除：将 `is_active` 设为 false，可通过 3.3 激活恢复
 
 ---
 
@@ -962,9 +1108,62 @@ DELETE /api/v1/admin/exams/{exam_id}
 
 ---
 
-## 9. 成绩统计（管理员）
+## 9. 考试会话管理（管理员）
 
-### 9.1 科目成绩统计
+### 9.1 查看考试会话列表
+
+```
+GET /api/v1/admin/exams/{exam_id}/sessions?page=1&pageSize=20
+```
+
+**需 Admin JWT + `exam:manage` 权限 + 科目授权**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| exam_id | int | 是 | 考试配置 ID（路径参数） |
+| page | int | 否 | 页码，默认 1 |
+| pageSize | int | 否 | 每页数量，默认 20 |
+
+成功响应：
+```json
+{
+  "code": 200,
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "user_id": "abc123",
+        "user_name": "张三",
+        "user_email": "zhangsan@example.com",
+        "status": "completed",
+        "started_at": "2026-04-21T10:00:00",
+        "expires_at": "2026-04-21T12:00:00",
+        "completed_at": "2026-04-21T11:45:00"
+      }
+    ],
+    "total": 50,
+    "page": 1,
+    "page_size": 20
+  },
+  "message": "success"
+}
+```
+
+### 9.2 查看考试会话详情
+
+```
+GET /api/v1/admin/exams/sessions/{session_id}
+```
+
+**需 Admin JWT + `exam:manage` 权限 + 科目授权**
+
+> 返回会话详情，包括学生信息、考试名称、抽题结果(selected_questions)
+
+---
+
+## 10. 成绩统计（管理员）
+
+### 10.1 科目成绩统计
 
 ```
 GET /api/v1/admin/scores/stats?subjectId={subject_id}
@@ -1005,7 +1204,7 @@ GET /api/v1/admin/scores/stats?subjectId={subject_id}
 | total_submissions | 提交总数 |
 | score_distribution | 分数段分布（单条 SQL CASE WHEN 聚合） |
 
-### 9.2 成绩列表（分页）
+### 10.2 成绩列表（分页）
 
 ```
 GET /api/v1/admin/scores/list?subjectId={subject_id}&page=1&pageSize=20
@@ -1291,7 +1490,9 @@ POST /api/v1/admin/rbac/roles/permissions
 GET /api/v1/admin/rbac/menus
 ```
 
-**需 Admin JWT**
+**需 Admin JWT + `admin:manage` 权限**
+
+> 返回完整的菜单树（管理端用，非前端路由格式）
 
 成功响应：
 ```json
@@ -1301,13 +1502,19 @@ GET /api/v1/admin/rbac/menus
     {
       "id": 1,
       "parent_id": null,
-      "name": "题库管理",
-      "path": "/questions",
-      "icon": "icon-question",
-      "component": "questions/index",
-      "permission_code": "question:manage",
-      "sort_order": 1,
-      "children": []
+      "name": "科目管理",
+      "route_key": "subjects",
+      "path": "/subjects",
+      "icon": "mdi:book-open-variant",
+      "component": null,
+      "permission_code": "subject:manage",
+      "i18n_key": "route.subjects",
+      "hide_in_menu": false,
+      "href": null,
+      "sort_order": 2,
+      "is_visible": true,
+      "is_active": true,
+      "children": [...]
     }
   ],
   "message": "success"
@@ -1326,14 +1533,36 @@ POST /api/v1/admin/rbac/menus
 ```json
 {
   "parent_id": null,
-  "name": "题库管理",
-  "path": "/questions",
-  "icon": "icon-question",
-  "component": "questions/index",
-  "permission_code": "question:manage",
-  "sort_order": 1
+  "name": "科目管理",
+  "route_key": "subjects",
+  "path": "/subjects",
+  "icon": "mdi:book-open-variant",
+  "component": null,
+  "permission_code": "subject:manage",
+  "i18n_key": "route.subjects",
+  "hide_in_menu": false,
+  "href": null,
+  "sort_order": 2,
+  "is_visible": true,
+  "is_active": true
 }
 ```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| parent_id | int | 否 | 父菜单 ID，null=顶级 |
+| name | string | 是 | 菜单显示标题 |
+| route_key | string | 否 | 路由标识，唯一，前端靠此匹配组件 |
+| path | string | 否 | 路由路径 |
+| icon | string | 否 | Iconify 图标名，如 mdi:book-open-variant |
+| component | string | 否 | 组件标识（前端自动推断，一般不需传） |
+| permission_code | string | 否 | 关联权限 code，控制菜单可见性 |
+| i18n_key | string | 否 | 国际化 key，如 route.subjects |
+| hide_in_menu | bool | 否 | 是否在侧边栏隐藏，默认 false |
+| href | string | 否 | 外链地址 |
+| sort_order | int | 否 | 排序，默认 0 |
+
+> `route_key` 必须唯一，创建/更新时校验重复
 
 #### 更新菜单
 
@@ -1747,8 +1976,16 @@ PUT /api/v1/admin/users/{user_id}/reset-password
 
 | 端点 | 权限 code | 科目级检查 |
 |------|-----------|-----------|
+| `POST /admin/auth/login` | 无需权限 | 否 |
+| `POST /admin/auth/register` | admin:manage | 否 |
+| `GET /admin/auth/me` | Admin JWT | 否 |
+| `PUT /admin/auth/me` | Admin JWT | 否 |
+| `PUT /admin/auth/password` | Admin JWT | 否 |
+| `GET /admin/auth/menus` | Admin JWT | 否 |
 | `GET /admin/dashboard` | dashboard:view | 否 |
 | `GET /admin/users` | score:view | 否 |
+| `GET /admin/users/{id}` | score:view | 否 |
+| `PUT /admin/users/{id}/activate` | admin:manage | 否 |
 | `DELETE /admin/users/{id}` | admin:manage | 否 |
 | `PUT /admin/users/{id}/reset-password` | admin:manage | 否 |
 | `POST /subjects` | subject:manage | 否（全局权限） |
@@ -1768,6 +2005,8 @@ PUT /api/v1/admin/users/{user_id}/reset-password
 | `POST /admin/exams` | exam:manage | body.subject_id |
 | `PUT /admin/exams/{id}` | exam:manage | 查实体→subject_id |
 | `DELETE /admin/exams/{id}` | exam:manage | 查实体→subject_id |
+| `GET /admin/exams/{id}/sessions` | exam:manage | 查实体→subject_id |
+| `GET /admin/exams/sessions/{id}` | exam:manage | 查实体→subject_id |
 | `GET /admin/scores/stats` | score:view | 否 |
 | `GET /admin/scores/list` | score:view | 否 |
 | 知识点管理接口 | question:manage | 查实体→subject_id |

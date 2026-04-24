@@ -8,12 +8,12 @@ declare namespace Api {
     type ElegantConstRoute = import('@elegant-router/types').ElegantConstRoute;
 
     interface MenuRoute extends ElegantConstRoute {
-      id: string;
+      id?: string;
     }
 
     interface UserRoute {
       routes: MenuRoute[];
-      home: import('@elegant-router/types').LastLevelRouteKey;
+      home: string;
     }
   }
 }

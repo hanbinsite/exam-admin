@@ -8,7 +8,7 @@ export function useAuth() {
       return false;
     }
 
-    const buttons = authStore.userInfo.buttons || [];
+    const buttons: string[] = [];
 
     if (typeof codes === 'string') {
       return buttons.includes(codes);

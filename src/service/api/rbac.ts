@@ -49,7 +49,13 @@ export function fetchRoleById(roleId: number) {
   });
 }
 
-export function fetchCreateRole(data: { name: string; code: string; description?: string; is_super?: boolean }) {
+export function fetchCreateRole(data: {
+  name: string;
+  code: string;
+  description?: string;
+  is_super?: boolean;
+  sort_order?: number;
+}) {
   return request<Exam.RBAC.Role>({
     url: '/admin/rbac/roles',
     method: 'post',
@@ -92,7 +98,7 @@ export function fetchMenuList() {
   });
 }
 
-export function fetchCreateMenu(data: Partial<Exam.RBAC.Menu>) {
+export function fetchCreateMenu(data: Exam.RBAC.MenuCreateRequest) {
   return request<Exam.RBAC.Menu>({
     url: '/admin/rbac/menus',
     method: 'post',
@@ -143,7 +149,7 @@ export function fetchUpdateAdminRole(adminId: string, roleCode: string) {
   });
 }
 
-export function fetchAdminMenus(adminId: string) {
+export function fetchRbacAdminMenus(adminId: string) {
   return request<Exam.RBAC.Menu[]>({
     url: `/admin/rbac/admins/${adminId}/menus`
   });

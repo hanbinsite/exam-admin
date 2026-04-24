@@ -16,17 +16,24 @@ export function fetchAdminRegister(name: string, email: string, password: string
   });
 }
 
+export function fetchAdminMe() {
+  return request<Exam.Auth.AdminProfile>({
+    url: '/admin/auth/me'
+  });
+}
+
+export function fetchUpdateAdminMe(data: { name?: string; email?: string }) {
+  return request<Exam.Auth.AdminProfile>({
+    url: '/admin/auth/me',
+    method: 'put',
+    data
+  });
+}
+
 export function fetchChangePassword(oldPassword: string, newPassword: string) {
   return request<{ message: string }>({
     url: '/admin/auth/password',
     method: 'put',
     data: { old_password: oldPassword, new_password: newPassword }
-  });
-}
-
-export function fetchCustomBackendError(code: string, msg: string) {
-  return request<null>({
-    url: '/admin/auth/error',
-    params: { code, msg }
   });
 }

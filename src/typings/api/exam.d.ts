@@ -12,8 +12,19 @@ declare namespace Exam {
       id: string;
       name: string;
       email: string;
-      role: 'super_admin' | 'admin' | 'teacher';
-      buttons?: string[];
+      role: string;
+    }
+
+    interface AdminProfile {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      role_info: {
+        code: string;
+        name: string;
+        is_super: boolean;
+      };
     }
 
     interface LoginToken {
@@ -30,6 +41,27 @@ declare namespace Exam {
       name: string;
       email: string;
       password: string;
+    }
+
+    interface MenuMeta {
+      title: string;
+      i18nKey?: string | null;
+      icon?: string;
+      order?: number;
+      hideInMenu?: boolean;
+      href?: string;
+    }
+
+    interface MenuItem {
+      name: string;
+      path: string;
+      meta: MenuMeta;
+      children?: MenuItem[];
+    }
+
+    interface AuthMenusResponse {
+      routes: MenuItem[];
+      home: string;
     }
   }
 
@@ -227,6 +259,40 @@ declare namespace Exam {
     }
   }
 
+  namespace ExamSession {
+    interface ExamSessionItem {
+      id: number;
+      user_id: string;
+      user_name: string;
+      user_email: string;
+      status: 'in_progress' | 'completed' | 'expired';
+      started_at: string;
+      expires_at: string;
+      completed_at: string | null;
+    }
+
+    interface ExamSessionListData {
+      items: ExamSessionItem[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+
+    interface ExamSessionDetail {
+      id: number;
+      user_id: string;
+      user_name: string;
+      user_email: string;
+      exam_id: number;
+      exam_name: string;
+      status: 'in_progress' | 'completed' | 'expired';
+      started_at: string;
+      expires_at: string;
+      completed_at: string | null;
+      selected_questions: Record<string, number[]>;
+    }
+  }
+
   namespace Score {
     interface ScoreStats {
       average_score: number;
@@ -282,6 +348,7 @@ declare namespace Exam {
       id: number;
       code: string;
       name: string;
+      description?: string;
       is_super: boolean;
       is_active: boolean;
       sort_order: number;
@@ -292,12 +359,34 @@ declare namespace Exam {
       id: number;
       parent_id: number | null;
       name: string;
+      route_key: string;
       path: string;
       icon?: string;
-      component?: string;
+      component?: string | null;
       permission_code?: string;
+      i18n_key?: string;
+      hide_in_menu: boolean;
+      href?: string | null;
       sort_order: number;
+      is_visible: boolean;
+      is_active: boolean;
       children?: Menu[];
+    }
+
+    interface MenuCreateRequest {
+      parent_id?: number | null;
+      name: string;
+      route_key?: string;
+      path?: string;
+      icon?: string;
+      component?: string | null;
+      permission_code?: string;
+      i18n_key?: string;
+      hide_in_menu?: boolean;
+      href?: string | null;
+      sort_order?: number;
+      is_visible?: boolean;
+      is_active?: boolean;
     }
 
     interface AdminDetail {

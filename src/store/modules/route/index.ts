@@ -4,7 +4,7 @@ import { defineStore } from 'pinia';
 import { useBoolean } from '@sa/hooks';
 import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
 import { router } from '@/router';
-import { fetchGetConstantRoutes, fetchGetUserRoutes, fetchIsRouteExist } from '@/service/api';
+import { fetchAdminMenus } from '@/service/api';
 import { SetupStoreId } from '@/enum';
 import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
@@ -157,14 +157,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (authRouteMode.value === 'static') {
       addConstantRoutes(staticRoute.constantRoutes);
     } else {
-      const { data, error } = await fetchGetConstantRoutes();
-
-      if (!error) {
-        addConstantRoutes(data);
-      } else {
-        // if fetch constant routes failed, use static constant routes
-        addConstantRoutes(staticRoute.constantRoutes);
-      }
+      addConstantRoutes(staticRoute.constantRoutes);
     }
 
     handleConstantAndAuthRoutes();
@@ -207,24 +200,66 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     setIsInitAuthRoute(true);
   }
 
+  /** Convert backend MenuItem to ElegantConstRoute with inferred component */
+  function convertMenuToRoute(menu: Exam.Auth.MenuItem): ElegantConstRoute {
+    const route: ElegantConstRoute = {
+      name: menu.name,
+      path: menu.path,
+      component: menu.children?.length ? 'layout.base' : `layout.base$view.${menu.name}`,
+      meta: {
+        title: menu.meta.title,
+        i18nKey: menu.meta.i18nKey as App.I18n.I18nKey | null | undefined,
+        icon: menu.meta.icon,
+        order: menu.meta.order,
+        hideInMenu: menu.meta.hideInMenu,
+        href: menu.meta.href
+      }
+    };
+
+    if (menu.children?.length) {
+      route.children = menu.children.map(child => {
+        const childRoute: ElegantConstRoute = {
+          name: child.name,
+          path: child.path,
+          component: `view.${child.name}`,
+          meta: {
+            title: child.meta.title,
+            i18nKey: child.meta.i18nKey as App.I18n.I18nKey | null | undefined,
+            icon: child.meta.icon,
+            order: child.meta.order,
+            hideInMenu: child.meta.hideInMenu,
+            href: child.meta.href
+          }
+        };
+        if (child.children?.length) {
+          childRoute.children = child.children.map(cc => convertMenuToRoute(cc));
+        }
+        return childRoute;
+      });
+    }
+
+    return route;
+  }
+
   /** Init dynamic auth route */
   async function initDynamicAuthRoute() {
-    const { data, error } = await fetchGetUserRoutes();
+    const { data, error } = await fetchAdminMenus();
 
     if (!error) {
       const { routes, home } = data;
 
-      addAuthRoutes(routes);
+      const convertedRoutes = routes.map(convertMenuToRoute);
+
+      addAuthRoutes(convertedRoutes);
 
       handleConstantAndAuthRoutes();
 
-      setRouteHome(home);
+      setRouteHome(home as LastLevelRouteKey);
 
-      handleUpdateRootRouteRedirect(home);
+      handleUpdateRootRouteRedirect(home as LastLevelRouteKey);
 
       setIsInitAuthRoute(true);
     } else {
-      // if fetch user routes failed, reset store
       authStore.resetStore();
     }
   }
@@ -298,14 +333,8 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
       return false;
     }
 
-    if (authRouteMode.value === 'static') {
-      const { authRoutes: staticAuthRoutes } = createStaticRoutes();
-      return isRouteExistByRouteName(routeName, staticAuthRoutes);
-    }
-
-    const { data } = await fetchIsRouteExist(routeName);
-
-    return data;
+    const { authRoutes: staticAuthRoutes } = createStaticRoutes();
+    return isRouteExistByRouteName(routeName, [...staticAuthRoutes, ...authRoutes.value]);
   }
 
   /**
