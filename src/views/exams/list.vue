@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchSubjectList, fetchUpdateExam } from '@/service/api';
+import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchUpdateExam } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'ExamList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const router = useRouter();
+const examStore = useExamStore();
 const exams = ref<Exam.ExamModule.ExamConfig[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -33,29 +35,22 @@ function resetForm() {
   editingId.value = null;
 }
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadExams() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchExamList(currentSubjectId.value);
+  const { data, error } = await fetchExamList(examStore.currentSubjectId);
   if (!error && data) {
     exams.value = data;
   }
   loading.value = false;
 }
 
-watch(currentSubjectId, () => {
-  loadExams();
-});
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    loadExams();
+  }
+);
 
 function handleAdd() {
   resetForm();
@@ -77,7 +72,7 @@ function handleEdit(row: Exam.ExamModule.ExamConfig) {
 
 async function handleSubmit() {
   submitting.value = true;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   if (editingId.value) {
     const { error } = await fetchUpdateExam(editingId.value, form);
     if (!error) {
@@ -117,15 +112,23 @@ async function handleDelete(row: Exam.ExamModule.ExamConfig) {
   }
 }
 
-onMounted(loadSubjects);
+function handleViewSessions(row: Exam.ExamModule.ExamConfig) {
+  router.push({ path: '/exams/sessions', query: { subjectId: examStore.currentSubjectId, examId: String(row.id) } });
+}
+
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-        <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
 
@@ -133,7 +136,7 @@ onMounted(loadSubjects);
       <template #header>
         <div class="flex items-center justify-between">
           <p>考试配置</p>
-          <ElButton type="primary" :disabled="!currentSubjectId" @click="handleAdd">新增考试</ElButton>
+          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">新增考试</ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="exams" border stripe>
@@ -145,8 +148,9 @@ onMounted(loadSubjects);
             <ElSwitch :model-value="row.is_active" @change="handleToggleActive(row)" />
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="180" align="center">
+        <ElTableColumn label="操作" width="240" align="center">
           <template #default="{ row }">
+            <ElButton type="info" link size="small" @click="handleViewSessions(row)">场次</ElButton>
             <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
             <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
           </template>

@@ -173,7 +173,7 @@ export function fetchRemoveSubjectAdmin(adminId: string, subjectId: string) {
   return request<null>({
     url: '/admin/rbac/subject-admins',
     method: 'delete',
-    params: { adminId, subjectId }
+    data: { admin_id: adminId, subject_id: subjectId }
   });
 }
 
@@ -201,6 +201,6 @@ export function fetchRemoveUserSubject(userId: string, subjectId: string) {
   return request<null>({
     url: '/admin/rbac/user-subjects',
     method: 'delete',
-    params: { userId, subjectId }
+    data: { user_id: userId, subject_id: subjectId }
   });
 }

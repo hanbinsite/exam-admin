@@ -27,6 +27,7 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   "knowledge-points_list": () => import("@/views/knowledge-points/list.vue"),
   materials_list: () => import("@/views/materials/list.vue"),
   exams_list: () => import("@/views/exams/list.vue"),
+  exams_sessions: () => import("@/views/exams/sessions.vue"),
   scores_list: () => import("@/views/scores/list.vue"),
   users_list: () => import("@/views/users/list.vue"),
   rbac_permissions: () => import("@/views/rbac/permissions.vue"),

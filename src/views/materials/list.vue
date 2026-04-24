@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import {
-  fetchCreateMaterial,
-  fetchDeleteMaterial,
-  fetchMaterialList,
-  fetchSubjectList,
-  fetchUpdateMaterial
-} from '@/service/api';
+import { fetchCreateMaterial, fetchDeleteMaterial, fetchMaterialList, fetchUpdateMaterial } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'MaterialList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const examStore = useExamStore();
 const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
 const activeTab = ref<Exam.Material.MaterialType>('guide');
@@ -50,20 +44,10 @@ function resetForm() {
   editingId.value = null;
 }
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadMaterials() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchMaterialList(currentSubjectId.value, {
+  const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
     page: pagination.page,
     pageSize: pagination.pageSize,
     type: activeTab.value
@@ -75,13 +59,14 @@ async function loadMaterials() {
   loading.value = false;
 }
 
-watch([currentSubjectId, activeTab], () => {
+watch([() => examStore.currentSubjectId, activeTab], () => {
+  pagination.page = 1;
   loadMaterials();
 });
 
 function handleAdd() {
   resetForm();
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   form.type = activeTab.value;
   dialogTitle.value = `新增${typeLabels[activeTab.value]}`;
   dialogVisible.value = true;
@@ -103,7 +88,7 @@ function handleEdit(row: Exam.Material.Material) {
 
 async function handleSubmit() {
   submitting.value = true;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   if (editingId.value) {
     const { error } = await fetchUpdateMaterial(editingId.value, form);
     if (!error) {
@@ -131,15 +116,19 @@ async function handleDelete(row: Exam.Material.Material) {
   }
 }
 
-onMounted(loadSubjects);
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-        <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
 
@@ -151,7 +140,7 @@ onMounted(loadSubjects);
             <ElTabPane label="实操任务" name="practice_task" />
             <ElTabPane label="案例分析" name="case_analysis" />
           </ElTabs>
-          <ElButton type="primary" :disabled="!currentSubjectId" @click="handleAdd">
+          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">
             新增{{ typeLabels[activeTab] }}
           </ElButton>
         </div>

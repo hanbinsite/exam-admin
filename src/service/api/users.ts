@@ -31,6 +31,6 @@ export function fetchResetUserPassword(userId: string, newPassword: string) {
   return request<{ message: string }>({
     url: `/admin/users/${userId}/reset-password`,
     method: 'put',
-    data: { user_id: userId, new_password: newPassword }
+    data: { new_password: newPassword }
   });
 }

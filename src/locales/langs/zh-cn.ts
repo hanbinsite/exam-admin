@@ -172,6 +172,7 @@ const local: App.I18n.Schema = {
     materials_list: '资料列表',
     exams: '考试配置',
     exams_list: '考试列表',
+    exams_sessions: '考试场次',
     scores: '成绩统计',
     scores_list: '成绩列表',
     users: '用户管理',

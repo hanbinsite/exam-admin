@@ -8,14 +8,13 @@ import {
   fetchQuestionList,
   fetchQuestionStats,
   fetchQuestionTypeList,
-  fetchSubjectList,
   fetchUpdateQuestion
 } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'QuestionList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const examStore = useExamStore();
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const stats = ref<Exam.Question.QuestionStats | null>(null);
 const loading = ref(false);
@@ -64,23 +63,13 @@ function resetForm() {
   editingId.value = null;
 }
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadData() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
   const [statsRes, typesRes, listRes] = await Promise.all([
-    fetchQuestionStats(currentSubjectId.value),
-    fetchQuestionTypeList(currentSubjectId.value),
-    fetchQuestionList(currentSubjectId.value, {
+    fetchQuestionStats(examStore.currentSubjectId),
+    fetchQuestionTypeList(examStore.currentSubjectId),
+    fetchQuestionList(examStore.currentSubjectId, {
       page: currentPage.value,
       pageSize: pageSize.value,
       type_id: filterTypeId.value,
@@ -97,10 +86,13 @@ async function loadData() {
   loading.value = false;
 }
 
-watch(currentSubjectId, () => {
-  currentPage.value = 1;
-  loadData();
-});
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    currentPage.value = 1;
+    loadData();
+  }
+);
 
 function handleSearch() {
   currentPage.value = 1;
@@ -120,7 +112,7 @@ function handleSizeChange(size: number) {
 
 function handleAdd() {
   resetForm();
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   dialogTitle.value = '新增题目';
   dialogVisible.value = true;
 }
@@ -128,7 +120,7 @@ function handleAdd() {
 function handleEdit(row: Exam.Question.QuestionListItem) {
   resetForm();
   editingId.value = row.id;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   form.title = row.title;
   form.answer = row.answer;
   form.difficulty = row.difficulty;
@@ -145,7 +137,7 @@ function handleEdit(row: Exam.Question.QuestionListItem) {
 
 async function handleSubmit() {
   submitting.value = true;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   if (editingId.value) {
     const { error } = await fetchUpdateQuestion(editingId.value, form);
     if (!error) {
@@ -191,7 +183,7 @@ async function handleImportSubmit() {
   try {
     const items: Exam.Question.QuestionCreateRequest[] = JSON.parse(importText.value);
     items.forEach(item => {
-      item.subject_id = currentSubjectId.value;
+      item.subject_id = examStore.currentSubjectId;
     });
     const { data, error } = await fetchBatchImportQuestions(items);
     if (!error && data) {
@@ -215,15 +207,19 @@ function truncate(text: string, len: number = 40) {
   return text.length > len ? `${text.slice(0, len)}...` : text;
 }
 
-onMounted(loadSubjects);
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-        <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
 
@@ -277,7 +273,7 @@ onMounted(loadSubjects);
               <ElOption label="困难" value="hard" />
             </ElSelect>
             <ElButton @click="handleImport">批量导入</ElButton>
-            <ElButton type="primary" :disabled="!currentSubjectId" @click="handleAdd">新增题目</ElButton>
+            <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">新增题目</ElButton>
           </div>
         </div>
       </template>

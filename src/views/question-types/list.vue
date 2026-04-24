@@ -5,14 +5,13 @@ import {
   fetchCreateQuestionType,
   fetchDeleteQuestionType,
   fetchQuestionTypeList,
-  fetchSubjectList,
   fetchUpdateQuestionType
 } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'QuestionTypeList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const examStore = useExamStore();
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -43,33 +42,26 @@ function resetForm() {
   editingId.value = null;
 }
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadQuestionTypes() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchQuestionTypeList(currentSubjectId.value);
+  const { data, error } = await fetchQuestionTypeList(examStore.currentSubjectId);
   if (!error && data) {
     questionTypes.value = data;
   }
   loading.value = false;
 }
 
-watch(currentSubjectId, () => {
-  loadQuestionTypes();
-});
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    loadQuestionTypes();
+  }
+);
 
 function handleAdd() {
   resetForm();
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   dialogTitle.value = '新增题型';
   dialogVisible.value = true;
 }
@@ -126,7 +118,11 @@ async function handleDelete(row: Exam.QuestionType.QuestionType) {
   }
 }
 
-onMounted(loadSubjects);
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
@@ -134,10 +130,12 @@ onMounted(loadSubjects);
     <ElCard>
       <div class="mb-16px flex items-center gap-12px">
         <span class="text-16px font-medium">科目：</span>
-        <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-          <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+        <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+          <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
         </ElSelect>
-        <ElButton type="primary" class="ml-auto" :disabled="!currentSubjectId" @click="handleAdd">新增题型</ElButton>
+        <ElButton type="primary" class="ml-auto" :disabled="!examStore.currentSubjectId" @click="handleAdd">
+          新增题型
+        </ElButton>
       </div>
       <ElTable v-loading="loading" :data="questionTypes" border stripe>
         <ElTableColumn prop="id" label="ID" width="80" />

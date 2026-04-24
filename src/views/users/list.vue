@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import { fetchResetUserPassword, fetchUserList } from '@/service/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { fetchActivateUser, fetchDeleteUser, fetchResetUserPassword, fetchUserList } from '@/service/api';
 
 defineOptions({ name: 'UserList' });
 
@@ -19,16 +19,10 @@ const newPassword = ref('');
 
 async function loadUsers() {
   loading.value = true;
-  const { data, error } = await fetchUserList(currentPage.value, pageSize.value);
+  const { data, error } = await fetchUserList(currentPage.value, pageSize.value, searchKeyword.value || undefined);
   if (!error && data) {
-    if (searchKeyword.value) {
-      const kw = searchKeyword.value.toLowerCase();
-      users.value = data.items.filter(u => u.name.toLowerCase().includes(kw) || u.email.toLowerCase().includes(kw));
-      total.value = users.value.length;
-    } else {
-      users.value = data.items;
-      total.value = data.total;
-    }
+    users.value = data.items;
+    total.value = data.total;
   }
   loading.value = false;
 }
@@ -70,6 +64,27 @@ async function handleResetPwdSubmit() {
   resetPwdSubmitting.value = false;
 }
 
+async function handleActivate(row: Exam.User.User) {
+  const { error } = await fetchActivateUser(row.id);
+  if (!error) {
+    ElMessage.success('激活成功');
+    loadUsers();
+  }
+}
+
+async function handleDeactivate(row: Exam.User.User) {
+  await ElMessageBox.confirm(`确定停用用户「${row.name}」吗？停用后该用户将无法登录。`, '停用确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  });
+  const { error } = await fetchDeleteUser(row.id);
+  if (!error) {
+    ElMessage.success('停用成功');
+    loadUsers();
+  }
+}
+
 onMounted(loadUsers);
 </script>
 
@@ -96,9 +111,22 @@ onMounted(loadUsers);
         <ElTableColumn prop="id" label="ID" width="280" />
         <ElTableColumn prop="name" label="姓名" min-width="150" />
         <ElTableColumn prop="email" label="邮箱" min-width="250" />
-        <ElTableColumn prop="created_at" label="注册时间" width="180" />
-        <ElTableColumn label="操作" width="150" align="center">
+        <ElTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
+            <ElTag :type="row.is_active ? 'success' : 'danger'">
+              {{ row.is_active ? '活跃' : '停用' }}
+            </ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="created_at" label="注册时间" width="180" />
+        <ElTableColumn label="操作" width="250" align="center">
+          <template #default="{ row }">
+            <ElButton v-if="!row.is_active" type="success" link size="small" @click="handleActivate(row)">
+              激活
+            </ElButton>
+            <ElButton v-if="row.is_active" type="warning" link size="small" @click="handleDeactivate(row)">
+              停用
+            </ElButton>
             <ElButton type="primary" link size="small" @click="handleResetPwd(row)">重置密码</ElButton>
           </template>
         </ElTableColumn>
@@ -121,7 +149,7 @@ onMounted(loadUsers);
           <ElInput :model-value="currentUserName" disabled />
         </ElFormItem>
         <ElFormItem label="新密码" required>
-          <ElInput v-model="newPassword" type="password" show-password placeholder="输入新密码" />
+          <ElInput v-model="newPassword" type="password" show-password placeholder="输入新密码（至少6位）" />
         </ElFormItem>
       </ElForm>
       <template #footer>

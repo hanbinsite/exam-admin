@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import { fetchSubjectList } from '@/service/api';
 import { localStg } from '@/utils/storage';
@@ -12,6 +12,10 @@ export const useExamStore = defineStore(`${SetupStoreId.Auth}-exam`, () => {
   const currentSubject = computed(() =>
     subjects.value.find((s: Exam.Subject.Subject) => s.id === currentSubjectId.value)
   );
+
+  watch(currentSubjectId, val => {
+    localStg.set('currentSubjectId', val);
+  });
 
   async function loadSubjects() {
     loading.value = true;

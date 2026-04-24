@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { fetchScoreList, fetchScoreStats, fetchSubjectList } from '@/service/api';
+import { fetchScoreList, fetchScoreStats } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'ScoreList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const examStore = useExamStore();
 const stats = ref<Exam.Score.ScoreStats | null>(null);
 const scoreList = ref<Exam.Score.ScoreItem[]>([]);
 const total = ref(0);
@@ -13,22 +13,12 @@ const currentPage = ref(1);
 const pageSize = ref(20);
 const loading = ref(false);
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadData() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
   const [statsRes, listRes] = await Promise.all([
-    fetchScoreStats(currentSubjectId.value),
-    fetchScoreList(currentSubjectId.value, currentPage.value, pageSize.value)
+    fetchScoreStats(examStore.currentSubjectId),
+    fetchScoreList(examStore.currentSubjectId, currentPage.value, pageSize.value)
   ]);
   if (!statsRes.error && statsRes.data) stats.value = statsRes.data;
   if (!listRes.error && listRes.data) {
@@ -38,10 +28,13 @@ async function loadData() {
   loading.value = false;
 }
 
-watch(currentSubjectId, () => {
-  currentPage.value = 1;
-  loadData();
-});
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    currentPage.value = 1;
+    loadData();
+  }
+);
 
 function handlePageChange(page: number) {
   currentPage.value = page;
@@ -54,15 +47,19 @@ function handleSizeChange(size: number) {
   loadData();
 }
 
-onMounted(loadSubjects);
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-        <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
 

@@ -35,6 +35,7 @@ declare module "@elegant-router/types" {
     "materials_list": "/materials/list";
     "exams": "/exams";
     "exams_list": "/exams/list";
+    "exams_sessions": "/exams/sessions";
     "scores": "/scores";
     "scores_list": "/scores/list";
     "users": "/users";
@@ -120,6 +121,7 @@ declare module "@elegant-router/types" {
     | "knowledge-points_list"
     | "materials_list"
     | "exams_list"
+    | "exams_sessions"
     | "scores_list"
     | "users_list"
     | "rbac_permissions"

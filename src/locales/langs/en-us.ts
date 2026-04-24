@@ -172,6 +172,7 @@ const local: App.I18n.Schema = {
     materials_list: 'Material List',
     exams: 'Exams',
     exams_list: 'Exam List',
+    exams_sessions: 'Exam Sessions',
     scores: 'Scores',
     scores_list: 'Score List',
     users: 'Users',

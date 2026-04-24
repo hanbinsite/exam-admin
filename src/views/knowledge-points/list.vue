@@ -5,14 +5,13 @@ import {
   fetchCreateKnowledgePoint,
   fetchDeleteKnowledgePoint,
   fetchKnowledgePointTree,
-  fetchSubjectList,
   fetchUpdateKnowledgePoint
 } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'KnowledgePointList' });
 
-const subjects = ref<Exam.Subject.Subject[]>([]);
-const currentSubjectId = ref('');
+const examStore = useExamStore();
 const knowledgePoints = ref<Exam.KnowledgePoint.KnowledgePoint[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -39,33 +38,26 @@ function resetForm() {
   editingId.value = null;
 }
 
-async function loadSubjects() {
-  const { data, error } = await fetchSubjectList();
-  if (!error && data) {
-    subjects.value = data;
-    if (data.length > 0 && !currentSubjectId.value) {
-      currentSubjectId.value = data[0].id;
-    }
-  }
-}
-
 async function loadKnowledgePoints() {
-  if (!currentSubjectId.value) return;
+  if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchKnowledgePointTree(currentSubjectId.value);
+  const { data, error } = await fetchKnowledgePointTree(examStore.currentSubjectId);
   if (!error && data) {
     knowledgePoints.value = data;
   }
   loading.value = false;
 }
 
-watch(currentSubjectId, () => {
-  loadKnowledgePoints();
-});
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    loadKnowledgePoints();
+  }
+);
 
 function handleAdd(parentId?: number) {
   resetForm();
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   form.parent_id = parentId || null;
   dialogTitle.value = '新增知识点';
   dialogVisible.value = true;
@@ -73,7 +65,7 @@ function handleAdd(parentId?: number) {
 
 function handleEdit(row: Exam.KnowledgePoint.KnowledgePoint) {
   editingId.value = row.id;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   form.parent_id = row.parent_id;
   form.name = row.name;
   form.description = row.description || '';
@@ -85,7 +77,7 @@ function handleEdit(row: Exam.KnowledgePoint.KnowledgePoint) {
 
 async function handleSubmit() {
   submitting.value = true;
-  form.subject_id = currentSubjectId.value;
+  form.subject_id = examStore.currentSubjectId;
   if (editingId.value) {
     const { error } = await fetchUpdateKnowledgePoint(editingId.value, form);
     if (!error) {
@@ -128,15 +120,19 @@ function flattenKP(kpList: Exam.KnowledgePoint.KnowledgePoint[]): Exam.Knowledge
   return result;
 }
 
-onMounted(loadSubjects);
+onMounted(() => {
+  if (examStore.subjects.length === 0) {
+    examStore.loadSubjects();
+  }
+});
 </script>
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="currentSubjectId" placeholder="选择科目" style="width: 200px">
-        <ElOption v-for="s in subjects" :key="s.id" :label="s.name" :value="s.id" />
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
 
@@ -144,7 +140,9 @@ onMounted(loadSubjects);
       <template #header>
         <div class="flex items-center justify-between">
           <p>知识点管理</p>
-          <ElButton type="primary" :disabled="!currentSubjectId" @click="handleAdd()">新增顶级知识点</ElButton>
+          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd()">
+            新增顶级知识点
+          </ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="knowledgePoints" border stripe row-key="id" default-expand-all>
