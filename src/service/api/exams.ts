@@ -12,6 +12,12 @@ export function fetchExamById(examId: number) {
   });
 }
 
+export function fetchAdminExamDetail(examId: number) {
+  return request<Exam.ExamModule.ExamConfig>({
+    url: `/admin/exams/${examId}`
+  });
+}
+
 export function fetchCreateExam(data: Exam.ExamModule.ExamCreateRequest) {
   return request<Exam.ExamModule.ExamConfig>({
     url: '/admin/exams',

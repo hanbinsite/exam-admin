@@ -218,6 +218,13 @@ declare namespace Exam {
       sort_order: number;
     }
 
+    interface MaterialListData {
+      items: Material[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+
     interface MaterialCreateRequest {
       subject_id: string;
       type: MaterialType;

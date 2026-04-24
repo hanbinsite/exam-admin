@@ -16,6 +16,7 @@ const currentSubjectId = ref('');
 const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
 const activeTab = ref<Exam.Material.MaterialType>('guide');
+const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增资料');
 const submitting = ref(false);
@@ -62,9 +63,14 @@ async function loadSubjects() {
 async function loadMaterials() {
   if (!currentSubjectId.value) return;
   loading.value = true;
-  const { data, error } = await fetchMaterialList(currentSubjectId.value, activeTab.value);
+  const { data, error } = await fetchMaterialList(currentSubjectId.value, {
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+    type: activeTab.value
+  });
   if (!error && data) {
-    materials.value = data;
+    materials.value = data.items;
+    pagination.total = data.total;
   }
   loading.value = false;
 }

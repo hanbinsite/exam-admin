@@ -1,15 +1,12 @@
 import { request } from '../request';
 
-export function fetchMaterialList(subjectId: string, type?: Exam.Material.MaterialType) {
-  return request<Exam.Material.Material[]>({
+export function fetchMaterialList(
+  subjectId: string,
+  params: { page?: number; pageSize?: number; type?: Exam.Material.MaterialType } = {}
+) {
+  return request<Exam.Material.MaterialListData>({
     url: `/subjects/${subjectId}/materials`,
-    params: type ? { type } : undefined
-  });
-}
-
-export function fetchMaterialById(materialId: number) {
-  return request<Exam.Material.Material>({
-    url: `/materials/${materialId}`
+    params: { page: params.page || 1, pageSize: params.pageSize || 20, ...(params.type ? { type: params.type } : {}) }
   });
 }
 

@@ -803,128 +803,65 @@ DELETE /api/v1/admin/questions/{question_id}
 POST /api/v1/admin/questions/batch
 ```
 
-**需 Admin JWT + `question:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `question:manage` 权限 + 科目授权**
 
-> 请求体为 `QuestionCreate` 对象数组（Pydantic 验证），非 raw dict
+> 安全限制：批量中的所有题目必须属于同一个 `subject_id`，否则返回 400
 
-请求体（JSON 数组）：
+请求体：
 ```json
 [
   {
     "subject_id": "blockchain",
     "type_id": 1,
-    "title": "题目1",
-    "answer": "A",
-    "difficulty": "medium",
-    "score": 1.0,
-    "content": {"options": [{"key": "A", "text": "选项1"}, {"key": "B", "text": "选项2"}]}
+    "title": "题目一",
+    "content": {"options": [{"key": "A", "text": "选项A"}]},
+    "answer": "A"
   },
   {
     "subject_id": "blockchain",
-    "type_id": 3,
-    "title": "题目2",
-    "answer": "对",
-    "difficulty": "easy",
-    "score": 1.0
+    "type_id": 1,
+    "title": "题目二",
+    "content": {"options": [{"key": "A", "text": "选项A"}]},
+    "answer": "A"
   }
 ]
 ```
-
-> 权限检查：取第一条数据的 subject_id 进行科目级权限校验
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "created": 2,
-    "skipped": 0
-  },
-  "message": "batch import done"
-}
-```
-
----
 
 ## 7. 学习资料管理
 
 ### 7.1 获取资料列表
 
 ```
-GET /api/v1/subjects/{subject_id}/materials?type={type}
+GET /api/v1/subjects/{subject_id}/materials?page=1&pageSize=20&type={type}
 ```
 
 **需 User JWT + 用户科目授权**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| subject_id | string | 是 | 科目 ID（路径参数） |
-| type | string | 否 | 资料类型过滤：guide/practice_task/case_analysis |
+> 该接口为用户侧读取接口，管理端通常用于对照查看资料展示效果
 
-> 如果 `REQUIRE_USER_SUBJECT_AUTH=false`，则仅需 User JWT
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "subject_id": "blockchain",
-      "type": "guide",
-      "title": "搭建以太坊开发环境",
-      "content": "本实操将引导你完成以太坊开发环境的搭建...",
-      "meta": null,
-      "summary": "环境搭建指南",
-      "tags": ["以太坊", "开发环境"],
-      "sort_order": 1
-    }
-  ],
-  "message": "success"
-}
-```
-
-### 7.2 获取资料详情
-
-```
-GET /api/v1/materials/{material_id}
-```
-
-**需 User JWT**
-
-### 7.3 创建学习资料
+### 7.2 创建资料
 
 ```
 POST /api/v1/admin/materials
 ```
 
-**需 Admin JWT + `material:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `material:manage` 权限 + 科目授权**
 
 请求体：
 ```json
 {
   "subject_id": "blockchain",
   "type": "guide",
-  "title": "搭建以太坊开发环境",
-  "content": "本实操将引导你完成...",
-  "summary": "环境搭建指南",
-  "tags": ["以太坊", "开发环境"],
+  "title": "区块链实操指南",
+  "content": "资料正文内容",
+  "meta": {"author": "admin"},
+  "summary": "摘要信息",
+  "tags": ["区块链", "实操"],
   "sort_order": 1
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| subject_id | string | 是 | 科目 ID |
-| type | string | 是 | 资料类型：guide(实操指南)/practice_task(实操任务)/case_analysis(案例分析) |
-| title | string | 是 | 标题，最长 200 字符 |
-| content | string | 是 | 正文内容 |
-| meta | object | 否 | 元数据 JSON（如步骤列表、预期输出等） |
-| summary | string | 否 | 摘要 |
-| tags | array | 否 | 标签数组 |
-| sort_order | int | 否 | 排序序号 |
-
-### 7.4 更新学习资料
+### 7.3 更新资料
 
 ```
 PUT /api/v1/admin/materials/{material_id}
@@ -932,26 +869,15 @@ PUT /api/v1/admin/materials/{material_id}
 
 **需 Admin JWT + `material:manage` 权限 + 资料所属科目授权**
 
-> 权限检查：先查询资料获取 subject_id，再校验科目级权限
+> 权限检查：先查询资料获取 `subject_id`，再校验科目级权限
 
-请求体（部分更新）：
-```json
-{
-  "title": "更新后的标题",
-  "content": "更新后的内容",
-  "summary": "更新后的摘要"
-}
-```
-
-### 7.5 删除学习资料
+### 7.4 删除资料
 
 ```
 DELETE /api/v1/admin/materials/{material_id}
 ```
 
 **需 Admin JWT + `material:manage` 权限 + 资料所属科目授权**
-
-> 权限检查：先查询资料获取 subject_id，再校验科目级权限
 
 ---
 
@@ -965,24 +891,7 @@ GET /api/v1/subjects/{subject_id}/exams
 
 **需 User JWT + 用户科目授权**
 
-> 如果 `REQUIRE_USER_SUBJECT_AUTH=false`，则仅需 User JWT
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "name": "区块链期末考试",
-      "description": "期末考试",
-      "duration": 120,
-      "is_active": true
-    }
-  ],
-  "message": "success"
-}
-```
+> 该接口为用户侧考试配置列表，管理端通常用于核对前台展示
 
 ### 8.2 获取考试配置详情
 
@@ -990,32 +899,9 @@ GET /api/v1/subjects/{subject_id}/exams
 GET /api/v1/exams/{exam_id}
 ```
 
-**需 User JWT**
+**需 User JWT + 用户科目授权**
 
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "id": 1,
-    "subject_id": "blockchain",
-    "name": "区块链期末考试",
-    "description": "期末考试",
-    "duration": 120,
-    "question_rules": {
-      "1": {"count": 50, "random": true}
-    },
-    "scoring_rules": {
-      "choice": 1,
-      "judgment": 1
-    },
-    "is_active": true
-  },
-  "message": "success"
-}
-```
-
-> `question_rules` 中的 key 是题型 ID，value 包含 `count`(抽取数量)、`random`(是否随机)、`fixed_ids`(固定题目 ID 数组)
+> 用户侧仅返回考试基础信息，不暴露 `question_rules` / `scoring_rules`
 
 ### 8.3 创建考试配置
 
@@ -1023,7 +909,7 @@ GET /api/v1/exams/{exam_id}
 POST /api/v1/admin/exams
 ```
 
-**需 Admin JWT + `exam:manage` 权限 + 对应科目授权**
+**需 Admin JWT + `exam:manage` 权限 + 科目授权**
 
 请求体：
 ```json
@@ -1033,26 +919,16 @@ POST /api/v1/admin/exams
   "description": "期末综合考试",
   "duration": 120,
   "question_rules": {
-    "1": {"count": 50, "random": true},
-    "3": {"count": 20, "random": true},
-    "5": {"count": 2, "fixed_ids": [101, 102]}
+    "choice": {"count": 50, "random": true},
+    "judgment": {"count": 20, "random": true}
   },
   "scoring_rules": {
     "choice": 1,
-    "judgment": 1,
-    "material": 5
-  }
+    "judgment": 1
+  },
+  "is_active": true
 }
 ```
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| subject_id | string | 是 | 科目 ID |
-| name | string | 是 | 考试名称，最长 200 字符 |
-| description | string | 否 | 考试说明 |
-| duration | int | 否 | 考试时长（分钟），默认 120 |
-| question_rules | object | 是 | 抽题规则 JSON，key 为题型 ID |
-| scoring_rules | object | 是 | 评分规则 JSON |
 
 ### 8.4 更新考试配置
 
@@ -1062,18 +938,6 @@ PUT /api/v1/admin/exams/{exam_id}
 
 **需 Admin JWT + `exam:manage` 权限 + 考试所属科目授权**
 
-> 权限检查：先查询考试配置获取 subject_id，再校验科目级权限
-
-请求体（部分更新）：
-```json
-{
-  "name": "更新后的考试名称",
-  "duration": 90,
-  "is_active": true,
-  "description": "更新后的说明"
-}
-```
-
 ### 8.5 删除考试配置（软删除）
 
 ```
@@ -1082,29 +946,8 @@ DELETE /api/v1/admin/exams/{exam_id}
 
 **需 Admin JWT + `exam:manage` 权限 + 考试所属科目授权**
 
-> 权限检查：先查询考试配置获取 subject_id，再校验科目级权限
-
-> 软删除：将 `is_active` 设置为 false，保留历史成绩和错题数据
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {"id": 1},
-  "message": "success"
-}
-```
-
-失败（有进行中的会话）：
-```json
-{
-  "code": 400,
-  "data": null,
-  "message": "Cannot delete exam with active sessions"
-}
-```
-
-> 安全机制：如果有学生正在考试（会话状态为 in_progress），则禁止删除
+> 软删除：将 `is_active` 设为 false，保留历史成绩和错题数据
+> 若存在进行中的会话，则禁止删除
 
 ---
 
@@ -1117,12 +960,6 @@ GET /api/v1/admin/exams/{exam_id}/sessions?page=1&pageSize=20
 ```
 
 **需 Admin JWT + `exam:manage` 权限 + 科目授权**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| exam_id | int | 是 | 考试配置 ID（路径参数） |
-| page | int | 否 | 页码，默认 1 |
-| pageSize | int | 否 | 每页数量，默认 20 |
 
 成功响应：
 ```json
@@ -1157,7 +994,7 @@ GET /api/v1/admin/exams/sessions/{session_id}
 
 **需 Admin JWT + `exam:manage` 权限 + 科目授权**
 
-> 返回会话详情，包括学生信息、考试名称、抽题结果(selected_questions)
+> 返回会话详情，包括用户信息、考试名称、抽题结果 `selected_questions`
 
 ---
 
@@ -1169,40 +1006,7 @@ GET /api/v1/admin/exams/sessions/{session_id}
 GET /api/v1/admin/scores/stats?subjectId={subject_id}
 ```
 
-**需 Admin JWT + `score:view` 权限**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| subjectId | string | 是 | 科目 ID |
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "average_score": 72.5,
-    "max_score": 95.0,
-    "min_score": 30.0,
-    "total_submissions": 150,
-    "score_distribution": {
-      "0-20": 5,
-      "20-40": 15,
-      "40-60": 30,
-      "60-80": 60,
-      "80-100": 40
-    }
-  },
-  "message": "success"
-}
-```
-
-| 字段 | 说明 |
-|------|------|
-| average_score | 平均分 |
-| max_score | 最高分 |
-| min_score | 最低分 |
-| total_submissions | 提交总数 |
-| score_distribution | 分数段分布（单条 SQL CASE WHEN 聚合） |
+**需 Admin JWT + `score:view` 权限 + query.subjectId 科目授权**
 
 ### 10.2 成绩列表（分页）
 
@@ -1210,13 +1014,7 @@ GET /api/v1/admin/scores/stats?subjectId={subject_id}
 GET /api/v1/admin/scores/list?subjectId={subject_id}&page=1&pageSize=20
 ```
 
-**需 Admin JWT + `score:view` 权限**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| subjectId | string | 是 | 科目 ID |
-| page | int | 否 | 页码，默认 1 |
-| pageSize | int | 否 | 每页数量，默认 20 |
+**需 Admin JWT + `score:view` 权限 + query.subjectId 科目授权**
 
 成功响应：
 ```json
@@ -1230,11 +1028,11 @@ GET /api/v1/admin/scores/list?subjectId={subject_id}&page=1&pageSize=20
         "user_name": "张三",
         "user_email": "zhangsan@example.com",
         "attempt_number": 1,
-        "total_score": 77.8,
-        "submitted_at": "2026-04-21T12:00:00"
+        "total_score": 86,
+        "submitted_at": "2026-04-21T11:45:00"
       }
     ],
-    "total": 150,
+    "total": 120,
     "page": 1,
     "page_size": 20
   },
@@ -1242,17 +1040,19 @@ GET /api/v1/admin/scores/list?subjectId={subject_id}&page=1&pageSize=20
 }
 ```
 
-| 字段 | 说明 |
-|------|------|
-| user_name | 学生姓名（关联 User 表） |
-| user_email | 学生邮箱（关联 User 表） |
-| total | DB 实际总数（非当前页条数），支持正确分页 |
+### 10.3 用户管理扩展
 
----
+#### 重置用户密码
 
-## 10. RBAC 权限管理
+```
+PUT /api/v1/admin/users/{user_id}/reset-password
+```
 
-### 10.1 初始化 RBAC
+**需 Admin JWT + `admin:manage` 权限**
+
+### 10.4 RBAC 管理
+
+#### 初始化 RBAC
 
 ```
 POST /api/v1/admin/rbac/init
@@ -1260,583 +1060,55 @@ POST /api/v1/admin/rbac/init
 
 **需 Admin JWT + `admin:manage` 权限**
 
-> 首次部署或清库后必须调用，初始化 9 个权限 + 3 个角色 + 角色权限映射
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "permissions_created": 9,
-    "roles_created": 3
-  },
-  "message": "RBAC initialized"
-}
-```
-
-### 10.2 权限管理
-
-#### 获取权限列表
-
-```
-GET /api/v1/admin/rbac/permissions
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "code": "subject:manage",
-      "name": "科目管理",
-      "description": "创建/编辑/删除科目"
-    }
-  ],
-  "message": "success"
-}
-```
-
-#### 创建权限
-
-```
-POST /api/v1/admin/rbac/permissions
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "code": "report:export",
-  "name": "报表导出",
-  "description": "导出成绩报表"
-}
-```
-
-#### 更新权限
-
-```
-PUT /api/v1/admin/rbac/permissions/{permission_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体（部分更新）：
-```json
-{
-  "name": "报表导出（修改版）",
-  "description": "导出成绩报表和统计报表"
-}
-```
-
-#### 删除权限
-
-```
-DELETE /api/v1/admin/rbac/permissions/{permission_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-### 10.3 角色管理
-
-#### 获取角色列表
-
-```
-GET /api/v1/admin/rbac/roles?includeInactive=true
-```
-
-**需 Admin JWT**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| includeInactive | boolean | 否 | 是否包含已禁用角色 |
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "code": "super_admin",
-      "name": "超级管理员",
-      "is_super": true,
-      "is_active": true,
-      "sort_order": 0
-    },
-    {
-      "id": 2,
-      "code": "admin",
-      "name": "管理员",
-      "is_super": false,
-      "is_active": true,
-      "sort_order": 1
-    }
-  ],
-  "message": "success"
-}
-```
-
-#### 获取角色详情
-
-```
-GET /api/v1/admin/rbac/roles/{role_id}
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "id": 2,
-    "code": "admin",
-    "name": "管理员",
-    "is_super": false,
-    "is_active": true,
-    "permissions": [
-      {"code": "subject:manage", "name": "科目管理"},
-      {"code": "question:manage", "name": "题目管理"}
-    ]
-  },
-  "message": "success"
-}
-```
-
-#### 创建角色
-
-```
-POST /api/v1/admin/rbac/roles
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "name": "班主任",
-  "code": "class_master",
-  "description": "班级管理者",
-  "is_super": false,
-  "sort_order": 3
-}
-```
-
-#### 更新角色
-
-```
-PUT /api/v1/admin/rbac/roles/{role_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体（部分更新）：
-```json
-{
-  "name": "班主任（修改版）",
-  "is_active": true,
-  "sort_order": 4
-}
-```
-
-#### 删除角色
-
-```
-DELETE /api/v1/admin/rbac/roles/{role_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-> super_admin 角色不可删除
-
-#### 获取角色权限
-
-```
-GET /api/v1/admin/rbac/roles/{role_code}/permissions
-```
-
-**需 Admin JWT**
-
-> super_admin 角色自动返回所有权限，无需分配
-
-#### 分配角色权限
-
-```
-POST /api/v1/admin/rbac/roles/permissions
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "role_code": "admin",
-  "permission_codes": ["subject:manage", "question:manage", "question_type:manage"]
-}
-```
-
-> 此操作会替换该角色的所有现有权限（全量覆盖）
-
-### 10.4 菜单管理
-
-#### 获取菜单树
-
-```
-GET /api/v1/admin/rbac/menus
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-> 返回完整的菜单树（管理端用，非前端路由格式）
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "parent_id": null,
-      "name": "科目管理",
-      "route_key": "subjects",
-      "path": "/subjects",
-      "icon": "mdi:book-open-variant",
-      "component": null,
-      "permission_code": "subject:manage",
-      "i18n_key": "route.subjects",
-      "hide_in_menu": false,
-      "href": null,
-      "sort_order": 2,
-      "is_visible": true,
-      "is_active": true,
-      "children": [...]
-    }
-  ],
-  "message": "success"
-}
-```
-
-#### 创建菜单
-
-```
-POST /api/v1/admin/rbac/menus
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "parent_id": null,
-  "name": "科目管理",
-  "route_key": "subjects",
-  "path": "/subjects",
-  "icon": "mdi:book-open-variant",
-  "component": null,
-  "permission_code": "subject:manage",
-  "i18n_key": "route.subjects",
-  "hide_in_menu": false,
-  "href": null,
-  "sort_order": 2,
-  "is_visible": true,
-  "is_active": true
-}
-```
-
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| parent_id | int | 否 | 父菜单 ID，null=顶级 |
-| name | string | 是 | 菜单显示标题 |
-| route_key | string | 否 | 路由标识，唯一，前端靠此匹配组件 |
-| path | string | 否 | 路由路径 |
-| icon | string | 否 | Iconify 图标名，如 mdi:book-open-variant |
-| component | string | 否 | 组件标识（前端自动推断，一般不需传） |
-| permission_code | string | 否 | 关联权限 code，控制菜单可见性 |
-| i18n_key | string | 否 | 国际化 key，如 route.subjects |
-| hide_in_menu | bool | 否 | 是否在侧边栏隐藏，默认 false |
-| href | string | 否 | 外链地址 |
-| sort_order | int | 否 | 排序，默认 0 |
-
-> `route_key` 必须唯一，创建/更新时校验重复
-
-#### 更新菜单
-
-```
-PUT /api/v1/admin/rbac/menus/{menu_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-#### 删除菜单
-
-```
-DELETE /api/v1/admin/rbac/menus/{menu_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-#### 获取角色菜单
-
-```
-GET /api/v1/admin/rbac/roles/{role_code}/menus
-```
-
-**需 Admin JWT**
-
-#### 分配角色菜单
-
-```
-POST /api/v1/admin/rbac/roles/menus
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "role_code": "admin",
-  "menu_ids": [1, 2, 3, 4, 5]
-}
-```
-
-> 此操作会替换该角色的所有现有菜单（全量覆盖）
-
-### 10.5 管理员角色分配
-
-#### 获取管理员列表
-
-```
-GET /api/v1/admin/rbac/admins
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": "admin_default",
-      "name": "Default Admin",
-      "email": "admin@exam.com",
-      "role": {
-        "code": "super_admin",
-        "name": "超级管理员",
-        "is_super": true
-      },
-      "subjects": ["blockchain", "python"]
-    }
-  ],
-  "message": "success"
-}
-```
-
-#### 修改管理员角色
-
-```
-PUT /api/v1/admin/rbac/admins/{admin_id}/role
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "role_code": "teacher"
-}
-```
-
-#### 获取管理员菜单
-
-```
-GET /api/v1/admin/rbac/admins/{admin_id}/menus
-```
-
-**需 Admin JWT**
-
-> 返回该管理员角色对应的菜单树，super_admin 返回完整菜单树
-
-#### 获取管理员授权科目
-
-```
-GET /api/v1/admin/rbac/admins/{admin_id}/subjects
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": ["blockchain", "python"],
-  "message": "success"
-}
-```
-
-### 10.6 科目授权（SubjectAdmin）
-
-#### 分配管理员科目
-
-```
-POST /api/v1/admin/rbac/subject-admins
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "admin_id": "admin_002",
-  "subject_id": "blockchain"
-}
-```
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "id": 1,
-    "admin_id": "admin_002",
-    "subject_id": "blockchain"
-  },
-  "message": "success"
-}
-```
-
-#### 取消管理员科目授权
-
-```
-DELETE /api/v1/admin/rbac/subject-admins?adminId={admin_id}&subjectId={subject_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| adminId | string | 是 | 管理员 ID |
-| subjectId | string | 是 | 科目 ID |
-
-### 10.7 用户科目授权（UserSubject）
-
-#### 获取用户已授权科目
-
-```
-GET /api/v1/admin/rbac/user-subjects/{user_id}
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": ["blockchain", "python"],
-  "message": "success"
-}
-```
-
-#### 获取科目下已授权用户
-
-```
-GET /api/v1/admin/rbac/user-subjects/subject/{subject_id}
-```
-
-**需 Admin JWT**
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": ["user_001", "user_002", "user_003"],
-  "message": "success"
-}
-```
-
-#### 分配用户科目
-
-```
-POST /api/v1/admin/rbac/user-subjects
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-请求体：
-```json
-{
-  "user_id": "user_001",
-  "subject_id": "blockchain"
-}
-```
-
-#### 取消用户科目授权
-
-```
-DELETE /api/v1/admin/rbac/user-subjects?userId={user_id}&subjectId={subject_id}
-```
-
-**需 Admin JWT + `admin:manage` 权限**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| userId | string | 是 | 用户 ID |
-| subjectId | string | 是 | 科目 ID |
+#### 权限管理
+
+- `GET /api/v1/admin/rbac/permissions`
+- `POST /api/v1/admin/rbac/permissions`
+- `PUT /api/v1/admin/rbac/permissions/{permission_id}`
+- `DELETE /api/v1/admin/rbac/permissions/{permission_id}`
+
+#### 角色管理
+
+- `GET /api/v1/admin/rbac/roles`
+- `GET /api/v1/admin/rbac/roles/{role_id}`
+- `POST /api/v1/admin/rbac/roles`
+- `PUT /api/v1/admin/rbac/roles/{role_id}`
+- `DELETE /api/v1/admin/rbac/roles/{role_id}`
+- `POST /api/v1/admin/rbac/roles/permissions`
+- `GET /api/v1/admin/rbac/roles/{role_code}/permissions`
+- `POST /api/v1/admin/rbac/roles/menus`
+- `GET /api/v1/admin/rbac/roles/{role_code}/menus`
+
+#### 菜单管理
+
+- `GET /api/v1/admin/rbac/menus`
+- `POST /api/v1/admin/rbac/menus`
+- `PUT /api/v1/admin/rbac/menus/{menu_id}`
+- `DELETE /api/v1/admin/rbac/menus/{menu_id}`
+
+> 菜单字段支持：`route_key`、`i18n_key`、`hide_in_menu`、`href`
+> `route_key` 必须唯一，并与前端路由 key 对齐
+
+#### 管理员与授权关系管理
+
+- `GET /api/v1/admin/rbac/admins`
+- `PUT /api/v1/admin/rbac/admins/{admin_id}/role`
+- `GET /api/v1/admin/rbac/admins/{admin_id}/menus`
+- `GET /api/v1/admin/rbac/admins/{admin_id}/subjects`
+- `POST /api/v1/admin/rbac/subject-admins`
+- `DELETE /api/v1/admin/rbac/subject-admins`
+- `POST /api/v1/admin/rbac/user-subjects`
+- `DELETE /api/v1/admin/rbac/user-subjects`
+- `GET /api/v1/admin/rbac/user-subjects/{user_id}`
+- `GET /api/v1/admin/rbac/user-subjects/subject/{subject_id}`
+
+> 说明：RBAC 读接口并非全部要求 `admin:manage`，部分只需 Admin JWT，具体以接口实际说明为准
 
 ---
 
-## 11. 健康检查
+## 11. 知识点管理
 
-### 11.1 健康检查
-
-```
-GET /api/v1/health
-```
-
-**无需认证**
-
-响应：
-```json
-{
-  "code": 200,
-  "data": {
-    "status": "ok",
-    "db": "connected",
-    "redis": "connected"
-  },
-  "message": "ok"
-}
-```
-
-### 11.2 Ping（轻量级）
-
-```
-GET /api/v1/ping
-```
-
-**无需认证**
-
-响应：
-```json
-{
-  "status": "ok",
-  "db": "connected",
-  "redis": "connected"
-}
-```
-
-> 返回裸 JSON（无 code/data/message 包装），适合 UptimeRobot HEAD 请求
-
----
-
-## 12. 知识点管理
-
-### 12.1 获取知识点树
+### 11.1 获取知识点树
 
 ```
 GET /api/v1/admin/knowledge-points/subjects/{subject_id}
@@ -1844,36 +1116,7 @@ GET /api/v1/admin/knowledge-points/subjects/{subject_id}
 
 **需 Admin JWT**
 
-> 获取某科目的知识点树形结构
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "subject_id": "blockchain",
-      "parent_id": null,
-      "name": "区块链基础",
-      "description": "区块链基础知识",
-      "sort_order": 1,
-      "is_active": true,
-      "children": [
-        {
-          "id": 2,
-          "parent_id": 1,
-          "name": "共识机制",
-          "children": []
-        }
-      ]
-    }
-  ],
-  "message": "success"
-}
-```
-
-### 12.2 创建知识点
+### 11.2 创建知识点
 
 ```
 POST /api/v1/admin/knowledge-points
@@ -1892,7 +1135,7 @@ POST /api/v1/admin/knowledge-points
 }
 ```
 
-### 12.3 更新知识点
+### 11.3 更新知识点
 
 ```
 PUT /api/v1/admin/knowledge-points/{kp_id}
@@ -1900,7 +1143,7 @@ PUT /api/v1/admin/knowledge-points/{kp_id}
 
 **需 Admin JWT + `question:manage` 权限 + 科目授权**
 
-### 12.4 删除知识点
+### 11.4 删除知识点
 
 ```
 DELETE /api/v1/admin/knowledge-points/{kp_id}
@@ -1910,7 +1153,7 @@ DELETE /api/v1/admin/knowledge-points/{kp_id}
 
 > 如果有子知识点或关联题目，则无法删除
 
-### 12.5 为题目分配知识点
+### 11.5 为题目分配知识点
 
 ```
 POST /api/v1/admin/knowledge-points/assign
@@ -1927,13 +1170,7 @@ POST /api/v1/admin/knowledge-points/assign
 }
 ```
 
-| 字段 | 说明 |
-|------|------|
-| question_id | 题目 ID |
-| knowledge_point_ids | 关联的知识点 ID 列表 |
-| primary_id | 主要知识点 ID（可选） |
-
-### 12.6 获取题目关联的知识点
+### 11.6 获取题目关联的知识点
 
 ```
 GET /api/v1/admin/knowledge-points/questions/{question_id}
@@ -1943,9 +1180,9 @@ GET /api/v1/admin/knowledge-points/questions/{question_id}
 
 ---
 
-## 13. 用户管理扩展
+## 12. 附录
 
-### 13.1 重置用户密码
+### 12.1 重置用户密码
 
 ```
 PUT /api/v1/admin/users/{user_id}/reset-password
@@ -1953,24 +1190,6 @@ PUT /api/v1/admin/users/{user_id}/reset-password
 
 **需 Admin JWT + `admin:manage` 权限**
 
-请求体：
-```json
-{
-  "user_id": "abc123",
-  "new_password": "NewPass123"
-}
-```
-
-成功响应：
-```json
-{
-  "code": 200,
-  "data": {"message": "Password reset successfully"},
-  "message": "success"
-}
-```
-
----
 
 ## 权限检查汇总
 
@@ -2007,10 +1226,11 @@ PUT /api/v1/admin/users/{user_id}/reset-password
 | `DELETE /admin/exams/{id}` | exam:manage | 查实体→subject_id |
 | `GET /admin/exams/{id}/sessions` | exam:manage | 查实体→subject_id |
 | `GET /admin/exams/sessions/{id}` | exam:manage | 查实体→subject_id |
-| `GET /admin/scores/stats` | score:view | 否 |
-| `GET /admin/scores/list` | score:view | 否 |
+| `GET /admin/scores/stats` | score:view | query.subjectId |
+| `GET /admin/scores/list` | score:view | query.subjectId |
 | 知识点管理接口 | question:manage | 查实体→subject_id |
-| RBAC 全部管理接口 | admin:manage | 否 |
+| RBAC 管理写接口 | admin:manage | 否 |
+| RBAC 部分读接口 | Admin JWT / 见接口说明 | 视接口而定 |
 
 ---
 
@@ -2047,8 +1267,10 @@ PUT /api/v1/admin/users/{user_id}/reset-password
 **触发限流响应**：
 ```json
 {
-  "detail": "Rate limit exceeded. Max 10 requests per 60 seconds."
+  "code": 429,
+  "data": null,
+  "message": "Rate limit exceeded. Max 10 requests per 60 seconds."
 }
 ```
 
-> 若未配置 Redis（REDIS_URL 为空），则限流功能自动禁用
+> 若未配置 Redis（REDIS_URL 为空），则回退为本地内存限流（非禁用）
