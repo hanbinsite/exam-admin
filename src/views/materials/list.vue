@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import { fetchCreateMaterial, fetchDeleteMaterial, fetchMaterialList, fetchUpdateMaterial } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
 
@@ -14,6 +15,8 @@ const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增资料');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
+const tagInput = ref('');
 
 const form = reactive<Exam.Material.MaterialCreateRequest>({
   subject_id: '',
@@ -34,6 +37,11 @@ const typeLabels: Record<Exam.Material.MaterialType, string> = {
   case_analysis: '案例分析'
 };
 
+const rules: FormRules = {
+  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.title = '';
   form.content = '';
@@ -42,6 +50,8 @@ function resetForm() {
   form.tags = [];
   form.sort_order = 0;
   editingId.value = null;
+  tagInput.value = '';
+  formRef.value?.resetFields();
 }
 
 async function loadMaterials() {
@@ -78,7 +88,7 @@ function handleEdit(row: Exam.Material.Material) {
   form.type = row.type;
   form.title = row.title;
   form.content = row.content;
-  form.meta = row.meta;
+  form.meta = row.meta ? { ...(row.meta as Record<string, unknown>) } : undefined;
   form.summary = row.summary || '';
   form.tags = row.tags || [];
   form.sort_order = row.sort_order;
@@ -87,24 +97,29 @@ function handleEdit(row: Exam.Material.Material) {
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  form.subject_id = examStore.currentSubjectId;
-  if (editingId.value) {
-    const { error } = await fetchUpdateMaterial(editingId.value, form);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadMaterials();
+  try {
+    form.subject_id = examStore.currentSubjectId;
+    if (editingId.value) {
+      const { error } = await fetchUpdateMaterial(editingId.value, form);
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadMaterials();
+      }
+    } else {
+      const { error } = await fetchCreateMaterial(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadMaterials();
+      }
     }
-  } else {
-    const { error } = await fetchCreateMaterial(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadMaterials();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.Material.Material) {
@@ -116,9 +131,36 @@ async function handleDelete(row: Exam.Material.Material) {
   }
 }
 
+function addTag() {
+  const tags = tagInput.value
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean);
+  form.tags = [...new Set([...(form.tags || []), ...tags])];
+  tagInput.value = '';
+}
+
+function removeTag(tag: string) {
+  form.tags = (form.tags || []).filter(t => t !== tag);
+}
+
+function handlePageChange(page: number) {
+  pagination.page = page;
+  loadMaterials();
+}
+
+function handleSizeChange(size: number) {
+  pagination.pageSize = size;
+  pagination.page = 1;
+  loadMaterials();
+}
+
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
+  }
+  if (examStore.currentSubjectId) {
+    loadMaterials();
   }
 });
 </script>
@@ -162,18 +204,39 @@ onMounted(() => {
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :total="pagination.total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @close="resetForm">
-      <ElForm :model="form" label-width="80px">
-        <ElFormItem label="标题" required>
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <ElFormItem label="标题" prop="title">
           <ElInput v-model="form.title" placeholder="资料标题" />
         </ElFormItem>
-        <ElFormItem label="内容" required>
-          <ElInput v-model="form.content" type="textarea" :rows="8" placeholder="资料内容" />
+        <ElFormItem label="内容" prop="content">
+          <ElInput v-model="form.content" type="textarea" :rows="8" placeholder="资料内容（支持HTML）" />
         </ElFormItem>
         <ElFormItem label="摘要">
           <ElInput v-model="form.summary" type="textarea" :rows="2" placeholder="简要描述" />
+        </ElFormItem>
+        <ElFormItem label="标签">
+          <div class="w-full">
+            <div class="mb-8px flex flex-wrap gap-4px">
+              <ElTag v-for="tag in form.tags || []" :key="tag" closable @close="removeTag(tag)">{{ tag }}</ElTag>
+            </div>
+            <div class="flex gap-8px">
+              <ElInput v-model="tagInput" placeholder="输入标签，逗号分隔" @keyup.enter="addTag" />
+              <ElButton @click="addTag">添加</ElButton>
+            </div>
+          </div>
         </ElFormItem>
         <ElFormItem label="排序">
           <ElInputNumber v-model="form.sort_order" :min="0" />

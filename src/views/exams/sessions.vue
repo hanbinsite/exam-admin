@@ -76,6 +76,7 @@ function handleSizeChange(size: number) {
 }
 
 async function handleViewDetail(sessionId: number) {
+  sessionDetail.value = null;
   detailVisible.value = true;
   detailLoading.value = true;
   const { data, error } = await fetchExamSessionById(sessionId);
@@ -88,7 +89,8 @@ async function handleViewDetail(sessionId: number) {
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
-  } else {
+  }
+  if (examStore.currentSubjectId) {
     loadExams();
   }
 });
@@ -128,6 +130,7 @@ onMounted(() => {
           </template>
         </ElTableColumn>
         <ElTableColumn prop="started_at" label="开始时间" width="180" />
+        <ElTableColumn prop="expires_at" label="过期时间" width="180" />
         <ElTableColumn prop="completed_at" label="完成时间" width="180" />
         <ElTableColumn label="操作" width="100" align="center">
           <template #default="{ row }">

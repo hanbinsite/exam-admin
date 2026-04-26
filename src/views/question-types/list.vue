@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import {
   fetchCreateQuestionType,
   fetchDeleteQuestionType,
@@ -17,6 +18,7 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增题型');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   subject_id: '',
@@ -31,6 +33,11 @@ const form = reactive({
 
 const editingId = ref<number | null>(null);
 
+const rules: FormRules = {
+  name: [{ required: true, message: '请输入题型标识', trigger: 'blur' }],
+  display_name: [{ required: true, message: '请输入显示名称', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.name = '';
   form.display_name = '';
@@ -40,6 +47,7 @@ function resetForm() {
   form.default_score = 1;
   form.sort_order = 0;
   editingId.value = null;
+  formRef.value?.resetFields();
 }
 
 async function loadQuestionTypes() {
@@ -81,32 +89,37 @@ function handleEdit(row: Exam.QuestionType.QuestionType) {
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  if (editingId.value) {
-    const { error } = await fetchUpdateQuestionType(editingId.value, {
-      subject_id: form.subject_id,
-      name: form.name,
-      display_name: form.display_name,
-      has_options: form.has_options,
-      has_sub_questions: form.has_sub_questions,
-      scoring_type: form.scoring_type,
-      default_score: form.default_score,
-      sort_order: form.sort_order
-    });
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadQuestionTypes();
+  try {
+    if (editingId.value) {
+      const { error } = await fetchUpdateQuestionType(editingId.value, {
+        subject_id: form.subject_id,
+        name: form.name,
+        display_name: form.display_name,
+        has_options: form.has_options,
+        has_sub_questions: form.has_sub_questions,
+        scoring_type: form.scoring_type,
+        default_score: form.default_score,
+        sort_order: form.sort_order
+      });
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadQuestionTypes();
+      }
+    } else {
+      const { error } = await fetchCreateQuestionType(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadQuestionTypes();
+      }
     }
-  } else {
-    const { error } = await fetchCreateQuestionType(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadQuestionTypes();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.QuestionType.QuestionType) {
@@ -121,6 +134,9 @@ async function handleDelete(row: Exam.QuestionType.QuestionType) {
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
+  }
+  if (examStore.currentSubjectId) {
+    loadQuestionTypes();
   }
 });
 </script>
@@ -164,11 +180,11 @@ onMounted(() => {
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
-      <ElForm :model="form" label-width="90px">
-        <ElFormItem label="标识" required>
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="90px">
+        <ElFormItem label="标识" prop="name">
           <ElInput v-model="form.name" placeholder="如 choice, multi_choice" />
         </ElFormItem>
-        <ElFormItem label="显示名称" required>
+        <ElFormItem label="显示名称" prop="display_name">
           <ElInput v-model="form.display_name" placeholder="如 单选题" />
         </ElFormItem>
         <ElFormItem label="有选项">

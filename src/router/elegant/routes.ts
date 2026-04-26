@@ -40,6 +40,15 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'dashboard',
+    path: '/dashboard',
+    component: 'layout.base$view.dashboard',
+    meta: {
+      title: 'dashboard',
+      i18nKey: 'route.dashboard'
+    }
+  },
+  {
     name: 'iframe-page',
     path: '/iframe-page/:url',
     component: 'layout.base$view.iframe-page',

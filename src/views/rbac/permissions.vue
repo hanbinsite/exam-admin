@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import {
   fetchCreatePermission,
   fetchDeletePermission,
@@ -15,6 +16,7 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增权限');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   code: '',
@@ -24,11 +26,17 @@ const form = reactive({
 
 const editingId = ref<number | null>(null);
 
+const rules: FormRules = {
+  code: [{ required: true, message: '请输入权限标识', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入权限名称', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.code = '';
   form.name = '';
   form.description = '';
   editingId.value = null;
+  formRef.value?.resetFields();
 }
 
 async function loadPermissions() {
@@ -56,23 +64,31 @@ function handleEdit(row: Exam.RBAC.Permission) {
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  if (editingId.value) {
-    const { error } = await fetchUpdatePermission(editingId.value, form);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadPermissions();
+  try {
+    if (editingId.value) {
+      const { error } = await fetchUpdatePermission(editingId.value, {
+        name: form.name,
+        description: form.description
+      });
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadPermissions();
+      }
+    } else {
+      const { error } = await fetchCreatePermission(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadPermissions();
+      }
     }
-  } else {
-    const { error } = await fetchCreatePermission(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadPermissions();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.RBAC.Permission) {
@@ -111,11 +127,11 @@ onMounted(loadPermissions);
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="450px" @close="resetForm">
-      <ElForm :model="form" label-width="80px">
-        <ElFormItem label="标识" required>
-          <ElInput v-model="form.code" placeholder="如 subject:manage" />
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <ElFormItem label="标识" prop="code">
+          <ElInput v-model="form.code" :disabled="!!editingId" placeholder="如 subject:manage" />
         </ElFormItem>
-        <ElFormItem label="名称" required>
+        <ElFormItem label="名称" prop="name">
           <ElInput v-model="form.name" placeholder="如 科目管理" />
         </ElFormItem>
         <ElFormItem label="描述">

@@ -233,7 +233,7 @@ export function useTableOperate<TableData>(
 }
 
 export function defaultTransform<ApiData>(
-  response: FlatResponseData<any, Api.Common.PaginatingQueryRecord<ApiData>>
+  response: FlatResponseData<any, { records: ApiData[]; current: number; size: number; total: number }>
 ): PaginationData<ApiData> {
   const { data, error } = response;
 

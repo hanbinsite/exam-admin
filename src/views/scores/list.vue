@@ -47,9 +47,83 @@ function handleSizeChange(size: number) {
   loadData();
 }
 
+function formatDate(iso: string) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function exportCSV() {
+  if (!scoreList.value.length) return;
+  const headers = ['ID', '学生姓名', '邮箱', '尝试次数', '总分', '提交时间'];
+  const rows = scoreList.value.map(item =>
+    [
+      item.id,
+      item.user_name,
+      item.user_email,
+      item.attempt_number,
+      item.total_score,
+      formatDate(item.submitted_at)
+    ].join(',')
+  );
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scores_${examStore.currentSubjectId}_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const distributionSegments = ref<{ label: string; count: number }[]>([]);
+
+watch(
+  () => stats.value,
+  statsVal => {
+    if (!statsVal?.score_distribution) {
+      distributionSegments.value = [];
+      return;
+    }
+    const segments = [
+      { label: '0-20', min: 0, max: 20 },
+      { label: '20-40', min: 20, max: 40 },
+      { label: '40-60', min: 40, max: 60 },
+      { label: '60-80', min: 60, max: 80 },
+      { label: '80-100', min: 80, max: 100 }
+    ];
+    const dist = statsVal.score_distribution;
+    distributionSegments.value = segments.map(seg => {
+      let count = 0;
+      for (const [key, entryVal] of Object.entries(dist)) {
+        const score = Number(key);
+        if (!Number.isNaN(score) && score >= seg.min && score < seg.max) {
+          count += entryVal;
+        }
+      }
+      if (seg.label === '80-100') {
+        for (const [key, entryVal] of Object.entries(dist)) {
+          const score = Number(key);
+          if (!Number.isNaN(score) && score === 100) count += entryVal;
+        }
+      }
+      return { label: seg.label, count };
+    });
+  },
+  { deep: true }
+);
+
+const maxDistCount = ref(0);
+watch(distributionSegments, val => {
+  maxDistCount.value = Math.max(...val.map(v => v.count), 1);
+});
+
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
+  }
+  if (examStore.currentSubjectId) {
+    loadData();
   }
 });
 </script>
@@ -78,9 +152,28 @@ onMounted(() => {
       </ElCol>
     </ElRow>
 
+    <ElCard v-if="distributionSegments.length > 0" shadow="hover">
+      <template #header>
+        <p>分数分布</p>
+      </template>
+      <div class="flex items-end gap-16px" style="height: 160px">
+        <div v-for="seg in distributionSegments" :key="seg.label" class="flex flex-col flex-1 items-center">
+          <div
+            class="w-full rounded-t bg-blue-500 transition-all"
+            :style="{ height: `${(seg.count / maxDistCount) * 120}px` }"
+          />
+          <span class="mt-4px text-xs text-gray-500">{{ seg.label }}</span>
+          <span class="text-xs font-medium">{{ seg.count }}</span>
+        </div>
+      </div>
+    </ElCard>
+
     <ElCard class="card-wrapper sm:flex-1-hidden">
       <template #header>
-        <p>成绩列表</p>
+        <div class="flex items-center justify-between">
+          <p>成绩列表</p>
+          <ElButton type="success" @click="exportCSV">导出CSV</ElButton>
+        </div>
       </template>
       <ElTable v-loading="loading" :data="scoreList" border stripe>
         <ElTableColumn prop="id" label="ID" width="80" />
@@ -88,7 +181,9 @@ onMounted(() => {
         <ElTableColumn prop="user_email" label="邮箱" min-width="200" />
         <ElTableColumn prop="attempt_number" label="尝试次数" width="100" align="center" />
         <ElTableColumn prop="total_score" label="总分" width="100" align="center" />
-        <ElTableColumn prop="submitted_at" label="提交时间" width="180" />
+        <ElTableColumn label="提交时间" width="180">
+          <template #default="{ row }">{{ formatDate(row.submitted_at) }}</template>
+        </ElTableColumn>
       </ElTable>
       <div class="mt-16px flex justify-end">
         <ElPagination

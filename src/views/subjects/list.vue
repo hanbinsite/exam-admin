@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import { fetchCreateSubject, fetchDeleteSubject, fetchSubjectList, fetchUpdateSubject } from '@/service/api';
 
 defineOptions({ name: 'SubjectList' });
@@ -10,6 +11,7 @@ const subjects = ref<Exam.Subject.Subject[]>([]);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增科目');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   id: '',
@@ -21,6 +23,11 @@ const form = reactive({
 
 const editingId = ref<string | null>(null);
 
+const rules: FormRules = {
+  id: [{ required: true, message: '请输入科目ID', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入科目名称', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.id = '';
   form.name = '';
@@ -28,6 +35,7 @@ function resetForm() {
   form.category = '';
   form.icon = '';
   editingId.value = null;
+  formRef.value?.resetFields();
 }
 
 async function loadSubjects() {
@@ -57,33 +65,39 @@ function handleEdit(row: Exam.Subject.Subject) {
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  if (editingId.value) {
-    const { error } = await fetchUpdateSubject(editingId.value, {
-      name: form.name,
-      description: form.description,
-      category: form.category
-    });
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadSubjects();
+  try {
+    if (editingId.value) {
+      const { error } = await fetchUpdateSubject(editingId.value, {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        icon: form.icon
+      });
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadSubjects();
+      }
+    } else {
+      const { error } = await fetchCreateSubject({
+        id: form.id,
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        icon: form.icon
+      });
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadSubjects();
+      }
     }
-  } else {
-    const { error } = await fetchCreateSubject({
-      id: form.id,
-      name: form.name,
-      description: form.description,
-      category: form.category,
-      icon: form.icon
-    });
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadSubjects();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.Subject.Subject) {
@@ -137,11 +151,11 @@ onMounted(loadSubjects);
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
-      <ElForm :model="form" label-width="80px">
-        <ElFormItem label="ID" required>
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <ElFormItem label="ID" prop="id">
           <ElInput v-model="form.id" :disabled="!!editingId" placeholder="科目唯一标识" />
         </ElFormItem>
-        <ElFormItem label="名称" required>
+        <ElFormItem label="名称" prop="name">
           <ElInput v-model="form.name" placeholder="科目名称" />
         </ElFormItem>
         <ElFormItem label="描述">

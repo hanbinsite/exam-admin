@@ -65,6 +65,11 @@ async function handleResetPwdSubmit() {
 }
 
 async function handleActivate(row: Exam.User.User) {
+  await ElMessageBox.confirm(`确定激活用户「${row.name}」吗？`, '激活确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  });
   const { error } = await fetchActivateUser(row.id);
   if (!error) {
     ElMessage.success('激活成功');
@@ -118,7 +123,11 @@ onMounted(loadUsers);
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="created_at" label="注册时间" width="180" />
+        <ElTableColumn label="注册时间" width="180">
+          <template #default="{ row }">
+            {{ row.created_at ? new Date(row.created_at).toLocaleString('zh-CN') : '-' }}
+          </template>
+        </ElTableColumn>
         <ElTableColumn label="操作" width="250" align="center">
           <template #default="{ row }">
             <ElButton v-if="!row.is_active" type="success" link size="small" @click="handleActivate(row)">

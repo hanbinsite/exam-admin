@@ -30,11 +30,12 @@ export const request = createFlatRequest(
       return config;
     },
     isBackendSuccess(response) {
-      return response.data.code === 200 || response.data.code === 201;
+      return response.data.code === 200;
     },
     async onBackendFail(response) {
       const authStore = useAuthStore();
       const responseCode = response.data.code;
+      const responseMsg = response.data.message;
 
       function handleLogout() {
         authStore.resetStore();
@@ -44,6 +45,12 @@ export const request = createFlatRequest(
       if (logoutCodes.includes(String(responseCode))) {
         handleLogout();
         return null;
+      }
+
+      if (responseCode && responseMsg) {
+        showErrorMsg(request.state, responseMsg);
+      } else if (responseCode) {
+        showErrorMsg(request.state, `请求失败 (code: ${responseCode})`);
       }
 
       return null;

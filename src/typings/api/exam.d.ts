@@ -102,6 +102,7 @@ declare namespace Exam {
       name?: string;
       description?: string;
       category?: string;
+      icon?: string;
       is_active?: boolean;
     }
   }
@@ -182,7 +183,7 @@ declare namespace Exam {
       type_id: number;
       parent_id?: number;
       title: string;
-      content?: object;
+      content?: { options?: { key: string; text: string }[] };
       answer?: string;
       explanation?: string;
       difficulty?: 'easy' | 'medium' | 'hard';
@@ -230,7 +231,7 @@ declare namespace Exam {
       type: MaterialType;
       title: string;
       content: string;
-      meta?: object;
+      meta?: Record<string, unknown>;
       summary?: string;
       tags?: string[];
       sort_order?: number;

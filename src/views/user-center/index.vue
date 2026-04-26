@@ -42,6 +42,10 @@ async function handleUpdateProfile() {
     ElMessage.warning('邮箱不能为空');
     return;
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email)) {
+    ElMessage.warning('邮箱格式不正确');
+    return;
+  }
   profileLoading.value = true;
   const { data, error } = await fetchUpdateAdminMe({
     name: profileForm.name,
@@ -101,7 +105,18 @@ onMounted(loadProfile);
               <ElInput v-model="profileForm.email" placeholder="请输入邮箱" />
             </ElFormItem>
             <ElFormItem label="角色">
-              <ElInput :model-value="authStore.userInfo.role" disabled />
+              <ElInput
+                :model-value="
+                  authStore.userInfo.role === 'super_admin'
+                    ? '超级管理员'
+                    : authStore.userInfo.role === 'admin'
+                      ? '管理员'
+                      : authStore.userInfo.role === 'teacher'
+                        ? '教师'
+                        : authStore.userInfo.role
+                "
+                disabled
+              />
             </ElFormItem>
             <ElFormItem>
               <ElButton type="primary" @click="handleUpdateProfile">保存修改</ElButton>

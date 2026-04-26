@@ -2,7 +2,8 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchUpdateExam } from '@/service/api';
+import type { FormInstance, FormRules } from 'element-plus';
+import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchQuestionTypeList, fetchUpdateExam } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
 
 defineOptions({ name: 'ExamList' });
@@ -10,10 +11,12 @@ defineOptions({ name: 'ExamList' });
 const router = useRouter();
 const examStore = useExamStore();
 const exams = ref<Exam.ExamModule.ExamConfig[]>([]);
+const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增考试');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive<Exam.ExamModule.ExamCreateRequest>({
   subject_id: '',
@@ -21,10 +24,25 @@ const form = reactive<Exam.ExamModule.ExamCreateRequest>({
   description: '',
   duration: 120,
   question_rules: {},
-  scoring_rules: {}
+  scoring_rules: {},
+  is_active: true
 });
 
 const editingId = ref<number | null>(null);
+
+const rules: FormRules = {
+  name: [{ required: true, message: '请输入考试名称', trigger: 'blur' }]
+};
+
+interface QuestionRuleRow {
+  type_id: string;
+  count: number;
+  random: boolean;
+  fixed_ids: string;
+}
+
+const ruleRows = ref<QuestionRuleRow[]>([]);
+const scoringRows = ref<{ type_id: string; score: number }[]>([]);
 
 function resetForm() {
   form.name = '';
@@ -32,15 +50,84 @@ function resetForm() {
   form.duration = 120;
   form.question_rules = {};
   form.scoring_rules = {};
+  form.is_active = true;
   editingId.value = null;
+  ruleRows.value = [];
+  scoringRows.value = [];
+  formRef.value?.resetFields();
+}
+
+function addRuleRow() {
+  ruleRows.value.push({ type_id: '', count: 10, random: true, fixed_ids: '' });
+}
+
+function removeRuleRow(index: number) {
+  ruleRows.value.splice(index, 1);
+}
+
+function addScoringRow() {
+  scoringRows.value.push({ type_id: '', score: 2 });
+}
+
+function removeScoringRow(index: number) {
+  scoringRows.value.splice(index, 1);
+}
+
+function buildQuestionRules() {
+  const result: Record<string, Exam.ExamModule.QuestionRule> = {};
+  for (const row of ruleRows.value) {
+    if (row.type_id) {
+      const rule: Exam.ExamModule.QuestionRule = { count: row.count, random: row.random };
+      if (!row.random && row.fixed_ids) {
+        rule.fixed_ids = row.fixed_ids
+          .split(',')
+          .map(id => Number(id.trim()))
+          .filter(id => !Number.isNaN(id));
+      }
+      result[row.type_id] = rule;
+    }
+  }
+  form.question_rules = result;
+}
+
+function buildScoringRules() {
+  const result: Record<string, number> = {};
+  for (const row of scoringRows.value) {
+    if (row.type_id) {
+      result[row.type_id] = row.score;
+    }
+  }
+  form.scoring_rules = result;
+}
+
+function parseQuestionRules(qRules: Record<string, Exam.ExamModule.QuestionRule>) {
+  ruleRows.value = Object.entries(qRules || {}).map(([typeId, rule]) => ({
+    type_id: typeId,
+    count: rule.count,
+    random: rule.random ?? true,
+    fixed_ids: rule.fixed_ids?.join(', ') || ''
+  }));
+}
+
+function parseScoringRules(sRules: Record<string, number>) {
+  scoringRows.value = Object.entries(sRules || {}).map(([typeId, score]) => ({
+    type_id: typeId,
+    score
+  }));
 }
 
 async function loadExams() {
   if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchExamList(examStore.currentSubjectId);
-  if (!error && data) {
-    exams.value = data;
+  const [examsRes, typesRes] = await Promise.all([
+    fetchExamList(examStore.currentSubjectId),
+    fetchQuestionTypeList(examStore.currentSubjectId)
+  ]);
+  if (!examsRes.error && examsRes.data) {
+    exams.value = examsRes.data;
+  }
+  if (!typesRes.error && typesRes.data) {
+    questionTypes.value = typesRes.data;
   }
   loading.value = false;
 }
@@ -64,31 +151,39 @@ function handleEdit(row: Exam.ExamModule.ExamConfig) {
   form.name = row.name;
   form.description = row.description || '';
   form.duration = row.duration;
-  form.question_rules = { ...row.question_rules };
-  form.scoring_rules = { ...row.scoring_rules };
+  form.is_active = row.is_active;
+  parseQuestionRules(row.question_rules);
+  parseScoringRules(row.scoring_rules);
   dialogTitle.value = '编辑考试';
   dialogVisible.value = true;
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
+  buildQuestionRules();
+  buildScoringRules();
   submitting.value = true;
-  form.subject_id = examStore.currentSubjectId;
-  if (editingId.value) {
-    const { error } = await fetchUpdateExam(editingId.value, form);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadExams();
+  try {
+    form.subject_id = examStore.currentSubjectId;
+    if (editingId.value) {
+      const { error } = await fetchUpdateExam(editingId.value, form);
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadExams();
+      }
+    } else {
+      const { error } = await fetchCreateExam(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadExams();
+      }
     }
-  } else {
-    const { error } = await fetchCreateExam(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadExams();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleToggleActive(row: Exam.ExamModule.ExamConfig) {
@@ -100,7 +195,7 @@ async function handleToggleActive(row: Exam.ExamModule.ExamConfig) {
 }
 
 async function handleDelete(row: Exam.ExamModule.ExamConfig) {
-  await ElMessageBox.confirm(`确定删除考试「${row.name}」吗？删除后将无法恢复。`, '删除确认', {
+  await ElMessageBox.confirm(`确定删除考试「${row.name}」吗？删除后将被停用。`, '删除确认', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
@@ -119,6 +214,9 @@ function handleViewSessions(row: Exam.ExamModule.ExamConfig) {
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
+  }
+  if (examStore.currentSubjectId) {
+    loadExams();
   }
 });
 </script>
@@ -158,9 +256,9 @@ onMounted(() => {
       </ElTable>
     </ElCard>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @close="resetForm">
-      <ElForm :model="form" label-width="100px">
-        <ElFormItem label="考试名称" required>
+    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="750px" @close="resetForm">
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <ElFormItem label="考试名称" prop="name">
           <ElInput v-model="form.name" placeholder="考试名称" />
         </ElFormItem>
         <ElFormItem label="描述">
@@ -169,36 +267,35 @@ onMounted(() => {
         <ElFormItem label="时长(分钟)">
           <ElInputNumber v-model="form.duration" :min="1" />
         </ElFormItem>
-        <ElFormItem label="抽题规则">
-          <ElInput
-            :model-value="JSON.stringify(form.question_rules, null, 2)"
-            type="textarea"
-            :rows="4"
-            placeholder='{"type_id": {"count": 50, "random": true}}'
-            @update:model-value="
-              (val: string) => {
-                try {
-                  form.question_rules = JSON.parse(val);
-                } catch {}
-              }
-            "
-          />
+        <ElFormItem label="启用">
+          <ElSwitch v-model="form.is_active" />
         </ElFormItem>
-        <ElFormItem label="评分规则">
-          <ElInput
-            :model-value="JSON.stringify(form.scoring_rules, null, 2)"
-            type="textarea"
-            :rows="4"
-            placeholder='{"type_id": 2}'
-            @update:model-value="
-              (val: string) => {
-                try {
-                  form.scoring_rules = JSON.parse(val);
-                } catch {}
-              }
-            "
-          />
-        </ElFormItem>
+
+        <ElDivider content-position="left">抽题规则</ElDivider>
+        <div v-for="(row, idx) in ruleRows" :key="idx" class="mb-8px flex items-center gap-8px">
+          <ElSelect v-model="row.type_id" placeholder="题型" style="width: 150px">
+            <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="String(t.id)" />
+          </ElSelect>
+          <ElInputNumber v-model="row.count" :min="1" placeholder="数量" style="width: 120px" />
+          <ElSelect v-model="row.random" style="width: 100px">
+            <ElOption :value="true" label="随机" />
+            <ElOption :value="false" label="固定" />
+          </ElSelect>
+          <ElInput v-if="!row.random" v-model="row.fixed_ids" placeholder="固定题目ID，逗号分隔" class="flex-1" />
+          <ElButton type="danger" link @click="removeRuleRow(idx)">删除</ElButton>
+        </div>
+        <ElButton type="primary" link @click="addRuleRow">+ 添加抽题规则</ElButton>
+
+        <ElDivider content-position="left">评分规则</ElDivider>
+        <div v-for="(row, idx) in scoringRows" :key="idx" class="mb-8px flex items-center gap-8px">
+          <ElSelect v-model="row.type_id" placeholder="题型" style="width: 150px">
+            <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="String(t.id)" />
+          </ElSelect>
+          <ElInputNumber v-model="row.score" :min="0.5" :step="0.5" placeholder="每题分值" style="width: 120px" />
+          <span class="text-gray-500">分/题</span>
+          <ElButton type="danger" link @click="removeScoringRow(idx)">删除</ElButton>
+        </div>
+        <ElButton type="primary" link @click="addScoringRow">+ 添加评分规则</ElButton>
       </ElForm>
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>

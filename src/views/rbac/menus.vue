@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import {
   fetchAssignRoleMenus,
   fetchCreateMenu,
   fetchDeleteMenu,
   fetchMenuList,
+  fetchRbacInit,
   fetchRoleList,
   fetchRoleMenus,
   fetchUpdateMenu
@@ -20,30 +22,48 @@ const dialogVisible = ref(false);
 const dialogTitle = ref('新增菜单');
 const submitting = ref(false);
 const assignDialogVisible = ref(false);
+const assignSubmitting = ref(false);
 const currentRoleCode = ref('');
 const selectedMenuIds = ref<number[]>([]);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   parent_id: null as number | null,
   name: '',
+  route_key: '',
   path: '',
   icon: '',
   component: '',
   permission_code: '',
+  i18n_key: '',
+  hide_in_menu: false,
+  is_visible: true,
+  is_active: true,
   sort_order: 0
 });
 
 const editingId = ref<number | null>(null);
 
+const rules: FormRules = {
+  name: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
+  path: [{ required: true, message: '请输入路径', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.parent_id = null;
   form.name = '';
+  form.route_key = '';
   form.path = '';
   form.icon = '';
   form.component = '';
   form.permission_code = '';
+  form.i18n_key = '';
+  form.hide_in_menu = false;
+  form.is_visible = true;
+  form.is_active = true;
   form.sort_order = 0;
   editingId.value = null;
+  formRef.value?.resetFields();
 }
 
 async function loadData() {
@@ -64,42 +84,57 @@ function handleEdit(row: Exam.RBAC.Menu) {
   editingId.value = row.id;
   form.parent_id = row.parent_id;
   form.name = row.name;
+  form.route_key = row.route_key || '';
   form.path = row.path;
   form.icon = row.icon || '';
   form.component = row.component || '';
   form.permission_code = row.permission_code || '';
+  form.i18n_key = row.i18n_key || '';
+  form.hide_in_menu = row.hide_in_menu;
+  form.is_visible = row.is_visible;
+  form.is_active = row.is_active;
   form.sort_order = row.sort_order;
   dialogTitle.value = '编辑菜单';
   dialogVisible.value = true;
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  const data = {
-    parent_id: form.parent_id,
-    name: form.name,
-    path: form.path,
-    icon: form.icon,
-    component: form.component,
-    permission_code: form.permission_code,
-    sort_order: form.sort_order
-  };
-  if (editingId.value) {
-    const { error } = await fetchUpdateMenu(editingId.value, data);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadData();
+  try {
+    const data: Exam.RBAC.MenuCreateRequest = {
+      parent_id: form.parent_id,
+      name: form.name,
+      route_key: form.route_key,
+      path: form.path,
+      icon: form.icon,
+      component: form.component || null,
+      permission_code: form.permission_code,
+      i18n_key: form.i18n_key,
+      hide_in_menu: form.hide_in_menu,
+      is_visible: form.is_visible,
+      is_active: form.is_active,
+      sort_order: form.sort_order
+    };
+    if (editingId.value) {
+      const { error } = await fetchUpdateMenu(editingId.value, data);
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadData();
+      }
+    } else {
+      const { error } = await fetchCreateMenu(data);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadData();
+      }
     }
-  } else {
-    const { error } = await fetchCreateMenu(data);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadData();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.RBAC.Menu) {
@@ -127,19 +162,43 @@ async function handleAssignDialog(role: Exam.RBAC.Role) {
 }
 
 async function handleAssignSubmit() {
-  const { error } = await fetchAssignRoleMenus(currentRoleCode.value, selectedMenuIds.value);
-  if (!error) {
-    ElMessage.success('菜单分配成功');
-    assignDialogVisible.value = false;
+  assignSubmitting.value = true;
+  try {
+    const { error } = await fetchAssignRoleMenus(currentRoleCode.value, selectedMenuIds.value);
+    if (!error) {
+      ElMessage.success('菜单分配成功');
+      assignDialogVisible.value = false;
+    }
+  } finally {
+    assignSubmitting.value = false;
   }
 }
 
-function flattenMenus(menuList: Exam.RBAC.Menu[]): Exam.RBAC.Menu[] {
-  const result: Exam.RBAC.Menu[] = [];
+async function handleRbacInit() {
+  try {
+    await ElMessageBox.confirm('确定初始化RBAC？将创建9个内置权限和3个内置角色。', 'RBAC初始化', { type: 'warning' });
+  } catch {
+    return;
+  }
+  const { data, error } = await fetchRbacInit();
+  if (!error && data) {
+    ElMessage.success(`初始化成功：创建 ${data.permissions_created} 个权限，${data.roles_created} 个角色`);
+    loadData();
+  }
+}
+
+function flattenMenusWithIndent(
+  menuList: Exam.RBAC.Menu[],
+  indent = 0,
+  excludeId?: number | null
+): { id: number; name: string; path: string; indent: number }[] {
+  const result: { id: number; name: string; path: string; indent: number }[] = [];
   for (const menu of menuList) {
-    result.push(menu);
-    if (menu.children && menu.children.length > 0) {
-      result.push(...flattenMenus(menu.children));
+    if (menu.id !== excludeId) {
+      result.push({ id: menu.id, name: menu.name, path: menu.path, indent });
+    }
+    if (menu.children && menu.children.length > 0 && menu.id !== excludeId) {
+      result.push(...flattenMenusWithIndent(menu.children, indent + 1, excludeId));
     }
   }
   return result;
@@ -154,7 +213,10 @@ onMounted(loadData);
       <template #header>
         <div class="flex items-center justify-between">
           <p>菜单管理</p>
-          <ElButton type="primary" @click="handleAdd">新增菜单</ElButton>
+          <div class="flex gap-8px">
+            <ElButton @click="handleRbacInit">初始化RBAC</ElButton>
+            <ElButton type="primary" @click="handleAdd">新增菜单</ElButton>
+          </div>
         </div>
       </template>
       <ElTable v-loading="loading" :data="menus" border stripe row-key="id" default-expand-all>
@@ -183,7 +245,7 @@ onMounted(loadData);
       <ElTable :data="roles" border stripe>
         <ElTableColumn prop="code" label="角色代码" width="150" />
         <ElTableColumn prop="name" label="角色名称" min-width="150" />
-        <ElTableColumn prop="is_super" label="超级角色" width="100" align="center">
+        <ElTableColumn label="超级角色" width="100" align="center">
           <template #default="{ row }">
             <ElTag v-if="row.is_super" type="success">是</ElTag>
             <ElTag v-else type="info">否</ElTag>
@@ -200,16 +262,24 @@ onMounted(loadData);
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
-      <ElForm :model="form" label-width="80px">
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
         <ElFormItem label="父菜单">
           <ElSelect v-model="form.parent_id" placeholder="选择父菜单" clearable>
-            <ElOption v-for="m in flattenMenus(menus)" :key="m.id" :label="m.name" :value="m.id" />
+            <ElOption
+              v-for="m in flattenMenusWithIndent(menus, 0, editingId)"
+              :key="m.id"
+              :label="`${'\u0020\u0020'.repeat(m.indent)}${m.name}`"
+              :value="m.id"
+            />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="名称" required>
+        <ElFormItem label="名称" prop="name">
           <ElInput v-model="form.name" placeholder="菜单名称" />
         </ElFormItem>
-        <ElFormItem label="路径" required>
+        <ElFormItem label="路由标识">
+          <ElInput v-model="form.route_key" placeholder="如 subjects_list" />
+        </ElFormItem>
+        <ElFormItem label="路径" prop="path">
           <ElInput v-model="form.path" placeholder="/path" />
         </ElFormItem>
         <ElFormItem label="图标">
@@ -220,6 +290,18 @@ onMounted(loadData);
         </ElFormItem>
         <ElFormItem label="权限码">
           <ElInput v-model="form.permission_code" placeholder="permission:code" />
+        </ElFormItem>
+        <ElFormItem label="i18n键">
+          <ElInput v-model="form.i18n_key" placeholder="如 menu.subjects" />
+        </ElFormItem>
+        <ElFormItem label="隐藏菜单">
+          <ElSwitch v-model="form.hide_in_menu" />
+        </ElFormItem>
+        <ElFormItem label="可见">
+          <ElSwitch v-model="form.is_visible" />
+        </ElFormItem>
+        <ElFormItem label="启用">
+          <ElSwitch v-model="form.is_active" />
         </ElFormItem>
         <ElFormItem label="排序">
           <ElInputNumber v-model="form.sort_order" :min="0" />
@@ -232,14 +314,21 @@ onMounted(loadData);
     </ElDialog>
 
     <ElDialog v-model="assignDialogVisible" title="分配菜单" width="500px">
-      <ElCheckboxGroup v-model="selectedMenuIds">
-        <ElCheckbox v-for="m in flattenMenus(menus)" :key="m.id" :value="m.id" class="mb-8px w-full">
-          {{ m.name }} ({{ m.path }})
-        </ElCheckbox>
-      </ElCheckboxGroup>
+      <ElTree
+        :data="menus"
+        show-checkbox
+        node-key="id"
+        :default-checked-keys="selectedMenuIds"
+        :props="{ label: 'name', children: 'children' }"
+        @check="
+          (_node: any, checked: { checkedKeys: number[] }) => {
+            selectedMenuIds = checked.checkedKeys;
+          }
+        "
+      />
       <template #footer>
         <ElButton @click="assignDialogVisible = false">取消</ElButton>
-        <ElButton type="primary" @click="handleAssignSubmit">提交</ElButton>
+        <ElButton type="primary" :loading="assignSubmitting" @click="handleAssignSubmit">提交</ElButton>
       </template>
     </ElDialog>
   </div>

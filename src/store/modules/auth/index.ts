@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchAdminLogin } from '@/service/api';
+import { fetchAdminLogin, fetchAdminMe } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -25,9 +25,10 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     id: '',
     name: '',
     email: '',
-    role: 'admin',
-    buttons: []
+    role: 'admin'
   });
+
+  const isSuperAdmin = ref(false);
 
   const isStaticSuper = computed(() => {
     const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
@@ -35,12 +36,19 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     return VITE_AUTH_ROUTE_MODE === 'static' && userInfo.role === VITE_STATIC_SUPER_ROLE;
   });
 
+  const isDynamicSuper = computed(() => {
+    return import.meta.env.VITE_AUTH_ROUTE_MODE === 'dynamic' && isSuperAdmin.value;
+  });
+
+  const isSuper = computed(() => isStaticSuper.value || isDynamicSuper.value);
+
   const isLogin = computed(() => Boolean(token.value));
 
   async function resetStore() {
     recordUserId();
 
     clearAuthStorage();
+    localStg.remove('currentSubjectId');
 
     authStore.$reset();
 
@@ -114,6 +122,11 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     Object.assign(userInfo, loginData.admin);
     token.value = loginData.token;
 
+    const { data: profile } = await fetchAdminMe();
+    if (profile?.role_info) {
+      isSuperAdmin.value = profile.role_info.is_super;
+    }
+
     return true;
   }
 
@@ -124,6 +137,11 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
       const adminInfo = localStg.get('adminInfo') as Exam.Auth.AdminInfo | null;
       if (adminInfo) {
         Object.assign(userInfo, adminInfo);
+        fetchAdminMe().then(({ data }) => {
+          if (data?.role_info) {
+            isSuperAdmin.value = data.role_info.is_super;
+          }
+        });
       } else {
         resetStore();
       }
@@ -134,6 +152,9 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     token,
     userInfo,
     isStaticSuper,
+    isDynamicSuper,
+    isSuper,
+    isSuperAdmin,
     isLogin,
     loginLoading,
     resetStore,

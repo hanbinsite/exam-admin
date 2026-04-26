@@ -8,13 +8,15 @@ export function useAuth() {
       return false;
     }
 
-    const buttons: string[] = [];
-
-    if (typeof codes === 'string') {
-      return buttons.includes(codes);
+    if (authStore.isSuper) {
+      return true;
     }
 
-    return codes.some(code => buttons.includes(code));
+    if (typeof codes === 'string') {
+      return authStore.userInfo.role === codes;
+    }
+
+    return codes.includes(authStore.userInfo.role);
   }
 
   return {

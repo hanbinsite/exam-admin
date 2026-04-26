@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import {
   fetchCreateKnowledgePoint,
   fetchDeleteKnowledgePoint,
@@ -17,6 +18,7 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增知识点');
 const submitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   subject_id: '',
@@ -29,6 +31,10 @@ const form = reactive({
 
 const editingId = ref<number | null>(null);
 
+const rules: FormRules = {
+  name: [{ required: true, message: '请输入知识点名称', trigger: 'blur' }]
+};
+
 function resetForm() {
   form.parent_id = null;
   form.name = '';
@@ -36,6 +42,7 @@ function resetForm() {
   form.sort_order = 0;
   form.is_active = true;
   editingId.value = null;
+  formRef.value?.resetFields();
 }
 
 async function loadKnowledgePoints() {
@@ -76,24 +83,29 @@ function handleEdit(row: Exam.KnowledgePoint.KnowledgePoint) {
 }
 
 async function handleSubmit() {
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
   submitting.value = true;
-  form.subject_id = examStore.currentSubjectId;
-  if (editingId.value) {
-    const { error } = await fetchUpdateKnowledgePoint(editingId.value, form);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadKnowledgePoints();
+  try {
+    form.subject_id = examStore.currentSubjectId;
+    if (editingId.value) {
+      const { error } = await fetchUpdateKnowledgePoint(editingId.value, form);
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadKnowledgePoints();
+      }
+    } else {
+      const { error } = await fetchCreateKnowledgePoint(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadKnowledgePoints();
+      }
     }
-  } else {
-    const { error } = await fetchCreateKnowledgePoint(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadKnowledgePoints();
-    }
+  } finally {
+    submitting.value = false;
   }
-  submitting.value = false;
 }
 
 async function handleDelete(row: Exam.KnowledgePoint.KnowledgePoint) {
@@ -109,12 +121,19 @@ async function handleDelete(row: Exam.KnowledgePoint.KnowledgePoint) {
   }
 }
 
-function flattenKP(kpList: Exam.KnowledgePoint.KnowledgePoint[]): Exam.KnowledgePoint.KnowledgePoint[] {
+function flattenKP(
+  kpList: Exam.KnowledgePoint.KnowledgePoint[],
+  excludeId?: number | null
+): Exam.KnowledgePoint.KnowledgePoint[] {
   const result: Exam.KnowledgePoint.KnowledgePoint[] = [];
   for (const kp of kpList) {
-    result.push(kp);
+    if (kp.id !== excludeId) {
+      result.push(kp);
+    }
     if (kp.children && kp.children.length > 0) {
-      result.push(...flattenKP(kp.children));
+      if (kp.id !== excludeId) {
+        result.push(...flattenKP(kp.children, excludeId));
+      }
     }
   }
   return result;
@@ -123,6 +142,9 @@ function flattenKP(kpList: Exam.KnowledgePoint.KnowledgePoint[]): Exam.Knowledge
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
+  }
+  if (examStore.currentSubjectId) {
+    loadKnowledgePoints();
   }
 });
 </script>
@@ -168,13 +190,18 @@ onMounted(() => {
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
-      <ElForm :model="form" label-width="80px">
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
         <ElFormItem label="父节点">
           <ElSelect v-model="form.parent_id" placeholder="选择父知识点" clearable>
-            <ElOption v-for="kp in flattenKP(knowledgePoints)" :key="kp.id" :label="kp.name" :value="kp.id" />
+            <ElOption
+              v-for="kp in flattenKP(knowledgePoints, editingId)"
+              :key="kp.id"
+              :label="kp.name"
+              :value="kp.id"
+            />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="名称" required>
+        <ElFormItem label="名称" prop="name">
           <ElInput v-model="form.name" placeholder="知识点名称" />
         </ElFormItem>
         <ElFormItem label="描述">

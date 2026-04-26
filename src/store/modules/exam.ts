@@ -4,7 +4,7 @@ import { fetchSubjectList } from '@/service/api';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
 
-export const useExamStore = defineStore(`${SetupStoreId.Auth}-exam`, () => {
+export const useExamStore = defineStore(SetupStoreId.Exam, () => {
   const subjects = ref<Exam.Subject.Subject[]>([]);
   const currentSubjectId = ref<string>(localStg.get('currentSubjectId') || '');
   const loading = ref(false);

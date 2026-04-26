@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useElementBounding } from '@vueuse/core';
 import { PageTab } from '@sa/materials';
 import { useAppStore } from '@/store/modules/app';
 import { useThemeStore } from '@/store/modules/theme';
 import { useTabStore } from '@/store/modules/tab';
-import { isPC } from '@/utils/agent';
-import BetterScroll from '@/components/custom/better-scroll.vue';
 import ContextMenu from './context-menu.vue';
 
 defineOptions({ name: 'GlobalTab' });
@@ -17,11 +14,7 @@ const appStore = useAppStore();
 const themeStore = useThemeStore();
 const tabStore = useTabStore();
 
-const bsWrapper = ref<HTMLElement>();
-const { width: bsWrapperWidth, left: bsWrapperLeft } = useElementBounding(bsWrapper);
-const bsScroll = ref<InstanceType<typeof BetterScroll>>();
 const tabRef = ref<HTMLElement>();
-const isPCFlag = isPC();
 
 const TAB_DATA_ID = 'data-tab-id';
 
@@ -42,28 +35,16 @@ async function scrollToActiveTab() {
 
     if (tabId === tabStore.activeTabId) {
       const { left, width } = child.getBoundingClientRect();
-      const clientX = left + width / 2;
-
-      setTimeout(() => {
-        scrollByClientX(clientX);
-      }, 50);
+      const scrollContainer = tabRef.value.parentElement;
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const scrollLeft = scrollContainer.scrollLeft;
+        const targetLeft = left - containerRect.left + scrollLeft - containerRect.width / 2 + width / 2;
+        scrollContainer.scrollTo({ left: targetLeft, behavior: 'smooth' });
+      }
 
       break;
     }
-  }
-}
-
-function scrollByClientX(clientX: number) {
-  const currentX = clientX - bsWrapperLeft.value;
-  const deltaX = currentX - bsWrapperWidth.value / 2;
-
-  if (bsScroll.value?.instance) {
-    const { maxScrollX, x: leftX, scrollBy } = bsScroll.value.instance;
-
-    const rightX = maxScrollX - leftX;
-    const update = deltaX > 0 ? Math.max(-deltaX, rightX) : Math.min(-deltaX, -leftX);
-
-    scrollBy(update, 0, 300);
   }
 }
 
@@ -138,11 +119,6 @@ function init() {
   tabStore.initTabStore(route);
 }
 
-function removeFocus() {
-  (document.activeElement as HTMLElement)?.blur();
-}
-
-// watch
 watch(
   () => route.fullPath,
   () => {
@@ -156,39 +132,36 @@ watch(
   }
 );
 
-// init
 init();
 </script>
 
 <template>
   <DarkModeContainer class="size-full flex-y-center px-16px shadow-tab">
-    <div ref="bsWrapper" class="h-full flex-1-hidden">
-      <BetterScroll ref="bsScroll" :options="{ scrollX: true, scrollY: false, click: !isPCFlag }" @click="removeFocus">
-        <div
-          ref="tabRef"
-          class="h-full flex pr-18px"
-          :class="[themeStore.tab.mode === 'chrome' ? 'items-end' : 'items-center gap-12px']"
+    <div class="h-full flex-1-hidden overflow-x-auto overflow-y-hidden">
+      <div
+        ref="tabRef"
+        class="h-full flex pr-18px"
+        :class="[themeStore.tab.mode === 'chrome' ? 'items-end' : 'items-center gap-12px']"
+      >
+        <PageTab
+          v-for="tab in tabStore.tabs"
+          :key="tab.id"
+          :[TAB_DATA_ID]="tab.id"
+          :mode="themeStore.tab.mode"
+          :dark-mode="themeStore.darkMode"
+          :active="tab.id === tabStore.activeTabId"
+          :active-color="themeStore.themeColor"
+          :closable="!tabStore.isTabRetain(tab.id)"
+          @click="tabStore.switchRouteByTab(tab)"
+          @close="handleCloseTab(tab)"
+          @contextmenu="handleContextMenu($event, tab.id)"
         >
-          <PageTab
-            v-for="tab in tabStore.tabs"
-            :key="tab.id"
-            :[TAB_DATA_ID]="tab.id"
-            :mode="themeStore.tab.mode"
-            :dark-mode="themeStore.darkMode"
-            :active="tab.id === tabStore.activeTabId"
-            :active-color="themeStore.themeColor"
-            :closable="!tabStore.isTabRetain(tab.id)"
-            @click="tabStore.switchRouteByTab(tab)"
-            @close="handleCloseTab(tab)"
-            @contextmenu="handleContextMenu($event, tab.id)"
-          >
-            <template #prefix>
-              <SvgIcon :icon="tab.icon" :local-icon="tab.localIcon" class="inline-block align-text-bottom text-16px" />
-            </template>
-            <div class="max-w-240px ellipsis-text">{{ tab.label }}</div>
-          </PageTab>
-        </div>
-      </BetterScroll>
+          <template #prefix>
+            <SvgIcon :icon="tab.icon" :local-icon="tab.localIcon" class="inline-block align-text-bottom text-16px" />
+          </template>
+          <div class="max-w-240px ellipsis-text">{{ tab.label }}</div>
+        </PageTab>
+      </div>
     </div>
     <div>
       <ReloadButton :loading="!appStore.reloadFlag" @click="refresh" />

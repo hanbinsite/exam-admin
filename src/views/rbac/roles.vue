@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import {
   fetchAssignRolePermissions,
   fetchCreateRole,
@@ -21,6 +22,7 @@ const dialogTitle = ref('新增角色');
 const submitting = ref(false);
 const permDialogVisible = ref(false);
 const permSubmitting = ref(false);
+const formRef = ref<FormInstance>();
 
 const form = reactive({
   name: '',
@@ -32,6 +34,11 @@ const form = reactive({
 const editingId = ref<number | null>(null);
 const currentRoleCode = ref('');
 const checkedPermissions = ref<string[]>([]);
+
+const rules: FormRules = {
+  code: [{ required: true, message: '请输入角色标识', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }]
+};
 
 async function loadRoles() {
   loading.value = true;
@@ -55,30 +62,42 @@ function handleEdit(row: Exam.RBAC.Role) {
   editingId.value = row.id;
   form.name = row.name;
   form.code = row.code;
-  form.description = '';
+  form.description = row.description || '';
   form.is_super = row.is_super;
   dialogTitle.value = '编辑角色';
   dialogVisible.value = true;
 }
 
 async function handleSubmit() {
-  submitting.value = true;
-  if (editingId.value) {
-    const { error } = await fetchUpdateRole(editingId.value, form);
-    if (!error) {
-      ElMessage.success('更新成功');
-      dialogVisible.value = false;
-      loadRoles();
-    }
-  } else {
-    const { error } = await fetchCreateRole(form);
-    if (!error) {
-      ElMessage.success('创建成功');
-      dialogVisible.value = false;
-      loadRoles();
+  const valid = await formRef.value?.validate().catch(() => false);
+  if (!valid) return;
+  if (form.is_super) {
+    try {
+      await ElMessageBox.confirm('设为超级管理员将绕过所有权限检查，确认？', '警告', { type: 'warning' });
+    } catch {
+      return;
     }
   }
-  submitting.value = false;
+  submitting.value = true;
+  try {
+    if (editingId.value) {
+      const { error } = await fetchUpdateRole(editingId.value, form);
+      if (!error) {
+        ElMessage.success('更新成功');
+        dialogVisible.value = false;
+        loadRoles();
+      }
+    } else {
+      const { error } = await fetchCreateRole(form);
+      if (!error) {
+        ElMessage.success('创建成功');
+        dialogVisible.value = false;
+        loadRoles();
+      }
+    }
+  } finally {
+    submitting.value = false;
+  }
 }
 
 async function handleDelete(row: Exam.RBAC.Role) {
@@ -107,12 +126,15 @@ async function handlePermissionAssign(row: Exam.RBAC.Role) {
 
 async function handlePermSubmit() {
   permSubmitting.value = true;
-  const { error } = await fetchAssignRolePermissions(currentRoleCode.value, checkedPermissions.value);
-  if (!error) {
-    ElMessage.success('权限分配成功');
-    permDialogVisible.value = false;
+  try {
+    const { error } = await fetchAssignRolePermissions(currentRoleCode.value, checkedPermissions.value);
+    if (!error) {
+      ElMessage.success('权限分配成功');
+      permDialogVisible.value = false;
+    }
+  } finally {
+    permSubmitting.value = false;
   }
-  permSubmitting.value = false;
 }
 
 onMounted(loadRoles);
@@ -131,6 +153,7 @@ onMounted(loadRoles);
         <ElTableColumn prop="id" label="ID" width="80" />
         <ElTableColumn prop="code" label="标识" width="150" />
         <ElTableColumn prop="name" label="名称" min-width="150" />
+        <ElTableColumn prop="description" label="描述" min-width="150" show-overflow-tooltip />
         <ElTableColumn label="超管" width="80" align="center">
           <template #default="{ row }">
             <ElTag :type="row.is_super ? 'danger' : 'info'">{{ row.is_super ? '是' : '否' }}</ElTag>
@@ -152,11 +175,11 @@ onMounted(loadRoles);
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="450px">
-      <ElForm :model="form" label-width="80px">
-        <ElFormItem label="标识" required>
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <ElFormItem label="标识" prop="code">
           <ElInput v-model="form.code" :disabled="!!editingId" placeholder="如 admin" />
         </ElFormItem>
-        <ElFormItem label="名称" required>
+        <ElFormItem label="名称" prop="name">
           <ElInput v-model="form.name" placeholder="如 管理员" />
         </ElFormItem>
         <ElFormItem label="描述">
