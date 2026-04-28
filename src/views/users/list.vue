@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchActivateUser, fetchDeleteUser, fetchResetUserPassword, fetchUserList } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'UserList' });
+
+const { hasAuth } = useAuth();
 
 const users = ref<Exam.User.User[]>([]);
 const total = ref(0);
@@ -130,13 +134,33 @@ onMounted(loadUsers);
         </ElTableColumn>
         <ElTableColumn label="操作" width="250" align="center">
           <template #default="{ row }">
-            <ElButton v-if="!row.is_active" type="success" link size="small" @click="handleActivate(row)">
+            <ElButton
+              v-if="!row.is_active && hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="success"
+              link
+              size="small"
+              @click="handleActivate(row)"
+            >
               激活
             </ElButton>
-            <ElButton v-if="row.is_active" type="warning" link size="small" @click="handleDeactivate(row)">
+            <ElButton
+              v-if="row.is_active && hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="warning"
+              link
+              size="small"
+              @click="handleDeactivate(row)"
+            >
               停用
             </ElButton>
-            <ElButton type="primary" link size="small" @click="handleResetPwd(row)">重置密码</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleResetPwd(row)"
+            >
+              重置密码
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

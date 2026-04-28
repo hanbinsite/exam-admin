@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchCreateKnowledgePoint,
   fetchDeleteKnowledgePoint,
@@ -9,10 +10,12 @@ import {
   fetchUpdateKnowledgePoint
 } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'KnowledgePointList' });
 
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const knowledgePoints = ref<Exam.KnowledgePoint.KnowledgePoint[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -162,7 +165,12 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <p>知识点管理</p>
-          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd()">
+          <ElButton
+            v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+            type="primary"
+            :disabled="!examStore.currentSubjectId"
+            @click="handleAdd()"
+          >
             新增顶级知识点
           </ElButton>
         </div>
@@ -181,9 +189,33 @@ onMounted(() => {
         </ElTableColumn>
         <ElTableColumn label="操作" width="220" align="center">
           <template #default="{ row }">
-            <ElButton type="success" link size="small" @click="handleAdd(row.id)">添加子节点</ElButton>
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="success"
+              link
+              size="small"
+              @click="handleAdd(row.id)"
+            >
+              添加子节点
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

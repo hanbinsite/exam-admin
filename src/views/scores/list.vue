@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchScoreList, fetchScoreStats } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'ScoreList' });
 
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const stats = ref<Exam.Score.ScoreStats | null>(null);
 const scoreList = ref<Exam.Score.ScoreItem[]>([]);
 const total = ref(0);
@@ -172,7 +175,7 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <p>成绩列表</p>
-          <ElButton type="success" @click="exportCSV">导出CSV</ElButton>
+          <ElButton v-if="hasAuth(PERMISSION_CODES.SCORE_VIEW)" type="success" @click="exportCSV">导出CSV</ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="scoreList" border stripe>

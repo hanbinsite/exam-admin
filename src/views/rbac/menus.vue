@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchAssignRoleMenus,
   fetchCreateMenu,
@@ -12,8 +13,11 @@ import {
   fetchRoleMenus,
   fetchUpdateMenu
 } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'RbacMenus' });
+
+const { hasAuth } = useAuth();
 
 const menus = ref<Exam.RBAC.Menu[]>([]);
 const roles = ref<Exam.RBAC.Role[]>([]);
@@ -214,8 +218,10 @@ onMounted(loadData);
         <div class="flex items-center justify-between">
           <p>菜单管理</p>
           <div class="flex gap-8px">
-            <ElButton @click="handleRbacInit">初始化RBAC</ElButton>
-            <ElButton type="primary" @click="handleAdd">新增菜单</ElButton>
+            <ElButton v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)" @click="handleRbacInit">初始化RBAC</ElButton>
+            <ElButton v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)" type="primary" @click="handleAdd">
+              新增菜单
+            </ElButton>
           </div>
         </div>
       </template>
@@ -229,8 +235,24 @@ onMounted(loadData);
         <ElTableColumn prop="sort_order" label="排序" width="80" align="center" />
         <ElTableColumn label="操作" width="150" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -253,7 +275,14 @@ onMounted(loadData);
         </ElTableColumn>
         <ElTableColumn label="操作" width="150" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" :disabled="row.is_super" @click="handleAssignDialog(row)">
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              :disabled="row.is_super"
+              @click="handleAssignDialog(row)"
+            >
               分配菜单
             </ElButton>
           </template>

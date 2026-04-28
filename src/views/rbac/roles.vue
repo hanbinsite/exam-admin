@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchAssignRolePermissions,
   fetchCreateRole,
@@ -11,8 +12,11 @@ import {
   fetchRolePermissions,
   fetchUpdateRole
 } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'RbacRoles' });
+
+const { hasAuth } = useAuth();
 
 const roles = ref<Exam.RBAC.Role[]>([]);
 const permissions = ref<Exam.RBAC.Permission[]>([]);
@@ -146,7 +150,7 @@ onMounted(loadRoles);
       <template #header>
         <div class="flex items-center justify-between">
           <p>角色管理</p>
-          <ElButton type="primary" @click="handleAdd">新增角色</ElButton>
+          <ElButton v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)" type="primary" @click="handleAdd">新增角色</ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="roles" border stripe>
@@ -166,9 +170,33 @@ onMounted(loadRoles);
         </ElTableColumn>
         <ElTableColumn label="操作" width="250" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="warning" link size="small" @click="handlePermissionAssign(row)">权限</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="warning"
+              link
+              size="small"
+              @click="handlePermissionAssign(row)"
+            >
+              权限
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

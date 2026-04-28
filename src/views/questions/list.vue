@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchBatchImportQuestions,
   fetchCreateQuestion,
@@ -12,10 +13,12 @@ import {
   fetchUpdateQuestion
 } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'QuestionList' });
 
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const stats = ref<Exam.Question.QuestionStats | null>(null);
 const loading = ref(false);
@@ -390,8 +393,15 @@ onMounted(() => {
               @clear="handleSearch"
               @keyup.enter="handleSearch"
             />
-            <ElButton @click="handleImport">批量导入</ElButton>
-            <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">新增题目</ElButton>
+            <ElButton v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)" @click="handleImport">批量导入</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="primary"
+              :disabled="!examStore.currentSubjectId"
+              @click="handleAdd"
+            >
+              新增题目
+            </ElButton>
           </div>
         </div>
       </template>
@@ -419,8 +429,24 @@ onMounted(() => {
         <ElTableColumn prop="answer" label="答案" width="80" align="center" />
         <ElTableColumn label="操作" width="150" align="center" fixed="right">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

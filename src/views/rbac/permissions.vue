@@ -2,14 +2,18 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchCreatePermission,
   fetchDeletePermission,
   fetchPermissionList,
   fetchUpdatePermission
 } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'RbacPermissions' });
+
+const { hasAuth } = useAuth();
 
 const permissions = ref<Exam.RBAC.Permission[]>([]);
 const loading = ref(false);
@@ -109,7 +113,7 @@ onMounted(loadPermissions);
       <template #header>
         <div class="flex items-center justify-between">
           <p>权限管理</p>
-          <ElButton type="primary" @click="handleAdd">新增权限</ElButton>
+          <ElButton v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)" type="primary" @click="handleAdd">新增权限</ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="permissions" border stripe>
@@ -119,8 +123,24 @@ onMounted(loadPermissions);
         <ElTableColumn prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <ElTableColumn label="操作" width="180" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

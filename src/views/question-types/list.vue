@@ -2,6 +2,7 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchCreateQuestionType,
   fetchDeleteQuestionType,
@@ -9,10 +10,12 @@ import {
   fetchUpdateQuestionType
 } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'QuestionTypeList' });
 
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -149,7 +152,13 @@ onMounted(() => {
         <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
           <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
         </ElSelect>
-        <ElButton type="primary" class="ml-auto" :disabled="!examStore.currentSubjectId" @click="handleAdd">
+        <ElButton
+          v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
+          type="primary"
+          class="ml-auto"
+          :disabled="!examStore.currentSubjectId"
+          @click="handleAdd"
+        >
           新增题型
         </ElButton>
       </div>
@@ -172,8 +181,24 @@ onMounted(() => {
         <ElTableColumn prop="sort_order" label="排序" width="80" align="center" />
         <ElTableColumn label="操作" width="180" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

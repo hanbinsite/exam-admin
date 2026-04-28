@@ -2,12 +2,15 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchCreateMaterial, fetchDeleteMaterial, fetchMaterialList, fetchUpdateMaterial } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'MaterialList' });
 
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
 const activeTab = ref<Exam.Material.MaterialType>('guide');
@@ -182,7 +185,12 @@ onMounted(() => {
             <ElTabPane label="实操任务" name="practice_task" />
             <ElTabPane label="案例分析" name="case_analysis" />
           </ElTabs>
-          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">
+          <ElButton
+            v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)"
+            type="primary"
+            :disabled="!examStore.currentSubjectId"
+            @click="handleAdd"
+          >
             新增{{ typeLabels[activeTab] }}
           </ElButton>
         </div>
@@ -199,8 +207,24 @@ onMounted(() => {
         <ElTableColumn prop="sort_order" label="排序" width="80" align="center" />
         <ElTableColumn label="操作" width="180" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

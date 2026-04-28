@@ -3,13 +3,16 @@ import { onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchQuestionTypeList, fetchUpdateExam } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'ExamList' });
 
 const router = useRouter();
 const examStore = useExamStore();
+const { hasAuth } = useAuth();
 const exams = ref<Exam.ExamModule.ExamConfig[]>([]);
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const loading = ref(false);
@@ -234,7 +237,14 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <p>考试配置</p>
-          <ElButton type="primary" :disabled="!examStore.currentSubjectId" @click="handleAdd">新增考试</ElButton>
+          <ElButton
+            v-if="hasAuth(PERMISSION_CODES.EXAM_MANAGE)"
+            type="primary"
+            :disabled="!examStore.currentSubjectId"
+            @click="handleAdd"
+          >
+            新增考试
+          </ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="exams" border stripe>
@@ -243,14 +253,34 @@ onMounted(() => {
         <ElTableColumn prop="duration" label="时长(分钟)" width="120" align="center" />
         <ElTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
-            <ElSwitch :model-value="row.is_active" @change="handleToggleActive(row)" />
+            <ElSwitch
+              :model-value="row.is_active"
+              :disabled="!hasAuth(PERMISSION_CODES.EXAM_MANAGE)"
+              @change="handleToggleActive(row)"
+            />
           </template>
         </ElTableColumn>
         <ElTableColumn label="操作" width="240" align="center">
           <template #default="{ row }">
             <ElButton type="info" link size="small" @click="handleViewSessions(row)">场次</ElButton>
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.EXAM_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.EXAM_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

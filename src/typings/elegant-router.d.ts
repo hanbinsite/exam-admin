@@ -17,6 +17,20 @@ declare module "@elegant-router/types" {
   export type RouteMap = {
     "root": "/";
     "not-found": "/:pathMatch(.*)*";
+    "exception": "/exception";
+    "exception_403": "/exception/403";
+    "exception_404": "/exception/404";
+    "exception_500": "/exception/500";
+    "document": "/document";
+    "document_project": "/document/project";
+    "document_project-link": "/document/project-link";
+    "document_vue": "/document/vue";
+    "document_vite": "/document/vite";
+    "document_unocss": "/document/unocss";
+    "document_naive": "/document/naive";
+    "document_antd": "/document/antd";
+    "document_element-plus": "/document/element-plus";
+    "document_alova": "/document/alova";
     "403": "/403";
     "404": "/404";
     "500": "/500";
@@ -24,28 +38,6 @@ declare module "@elegant-router/types" {
     "iframe-page": "/iframe-page/:url";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
     "user-center": "/user-center";
-    "subjects": "/subjects";
-    "subjects_list": "/subjects/list";
-    "question-types": "/question-types";
-    "question-types_list": "/question-types/list";
-    "questions": "/questions";
-    "questions_list": "/questions/list";
-    "knowledge-points": "/knowledge-points";
-    "knowledge-points_list": "/knowledge-points/list";
-    "materials": "/materials";
-    "materials_list": "/materials/list";
-    "exams": "/exams";
-    "exams_list": "/exams/list";
-    "exams_sessions": "/exams/sessions";
-    "scores": "/scores";
-    "scores_list": "/scores/list";
-    "users": "/users";
-    "users_list": "/users/list";
-    "rbac": "/rbac";
-    "rbac_permissions": "/rbac/permissions";
-    "rbac_roles": "/rbac/roles";
-    "rbac_menus": "/rbac/menus";
-    "rbac_admins": "/rbac/admins";
   };
 
   /**
@@ -65,6 +57,20 @@ declare module "@elegant-router/types" {
     RouteKey,
     | "root"
     | "not-found"
+    | "exception"
+    | "exception_403"
+    | "exception_404"
+    | "exception_500"
+    | "document"
+    | "document_project"
+    | "document_project-link"
+    | "document_vue"
+    | "document_vite"
+    | "document_unocss"
+    | "document_naive"
+    | "document_antd"
+    | "document_element-plus"
+    | "document_alova"
   >;
 
   /**
@@ -84,15 +90,6 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "user-center"
-    | "subjects"
-    | "question-types"
-    | "questions"
-    | "knowledge-points"
-    | "materials"
-    | "exams"
-    | "scores"
-    | "users"
-    | "rbac"
   >;
 
   /**
@@ -102,6 +99,8 @@ declare module "@elegant-router/types" {
     CustomRouteKey,
     | "root"
     | "not-found"
+    | "exception"
+    | "document"
   >;
 
   /**
@@ -116,19 +115,6 @@ declare module "@elegant-router/types" {
     | "login"
     | "dashboard"
     | "user-center"
-    | "subjects_list"
-    | "question-types_list"
-    | "questions_list"
-    | "knowledge-points_list"
-    | "materials_list"
-    | "exams_list"
-    | "exams_sessions"
-    | "scores_list"
-    | "users_list"
-    | "rbac_permissions"
-    | "rbac_roles"
-    | "rbac_menus"
-    | "rbac_admins"
   >;
 
   /**
@@ -138,6 +124,18 @@ declare module "@elegant-router/types" {
     CustomRouteKey,
     | "root"
     | "not-found"
+    | "exception_403"
+    | "exception_404"
+    | "exception_500"
+    | "document_project"
+    | "document_project-link"
+    | "document_vue"
+    | "document_vite"
+    | "document_unocss"
+    | "document_naive"
+    | "document_antd"
+    | "document_element-plus"
+    | "document_alova"
   >;
 
   /**
@@ -152,7 +150,7 @@ declare module "@elegant-router/types" {
 
   /**
    * the first level route key, but not the single level
-   */
+  */
   export type FirstLevelRouteNotSingleKey = Exclude<FirstLevelRouteKey, SingleLevelRouteKey>;
 
   /**
@@ -184,10 +182,10 @@ declare module "@elegant-router/types" {
    */
   type SingleLevelRoute<K extends SingleLevelRouteKey = SingleLevelRouteKey> = K extends string
     ? Omit<ElegantConstRoute, 'children'> & {
-      name: K;
-      path: RouteMap[K];
-      component: `layout.${RouteLayout}$view.${K}`;
-    }
+        name: K;
+        path: RouteMap[K];
+        component: `layout.${RouteLayout}$view.${K}`;
+      }
     : never;
 
   /**
@@ -195,21 +193,21 @@ declare module "@elegant-router/types" {
    */
   type LastLevelRoute<K extends GeneratedRouteKey> = K extends LastLevelRouteKey
     ? Omit<ElegantConstRoute, 'children'> & {
-      name: K;
-      path: RouteMap[K];
-      component: `view.${K}`;
-    }
+        name: K;
+        path: RouteMap[K];
+        component: `view.${K}`;
+      }
     : never;
-
+  
   /**
    * the center level route
    */
   type CenterLevelRoute<K extends GeneratedRouteKey> = K extends CenterLevelRouteKey
     ? Omit<ElegantConstRoute, 'component'> & {
-      name: K;
-      path: RouteMap[K];
-      children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
-    }
+        name: K;
+        path: RouteMap[K];
+        children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
+      }
     : never;
 
   /**
@@ -217,22 +215,22 @@ declare module "@elegant-router/types" {
    */
   type MultiLevelRoute<K extends FirstLevelRouteNotSingleKey = FirstLevelRouteNotSingleKey> = K extends string
     ? ElegantConstRoute & {
-      name: K;
-      path: RouteMap[K];
-      component: `layout.${RouteLayout}`;
-      children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
-    }
+        name: K;
+        path: RouteMap[K];
+        component: `layout.${RouteLayout}`;
+        children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
+      }
     : never;
-
+  
   /**
    * the custom first level route
    */
   type CustomSingleLevelRoute<K extends CustomFirstLevelRouteKey = CustomFirstLevelRouteKey> = K extends string
     ? Omit<ElegantConstRoute, 'children'> & {
-      name: K;
-      path: RouteMap[K];
-      component?: `layout.${RouteLayout}$view.${LastLevelRouteKey}`;
-    }
+        name: K;
+        path: RouteMap[K];
+        component?: `layout.${RouteLayout}$view.${LastLevelRouteKey}`;
+      }
     : never;
 
   /**
@@ -240,10 +238,10 @@ declare module "@elegant-router/types" {
    */
   type CustomLastLevelRoute<K extends CustomRouteKey> = K extends CustomLastLevelRouteKey
     ? Omit<ElegantConstRoute, 'children'> & {
-      name: K;
-      path: RouteMap[K];
-      component?: `view.${LastLevelRouteKey}`;
-    }
+        name: K;
+        path: RouteMap[K];
+        component?: `view.${LastLevelRouteKey}`;
+      }
     : never;
 
   /**
@@ -251,10 +249,10 @@ declare module "@elegant-router/types" {
    */
   type CustomCenterLevelRoute<K extends CustomRouteKey> = K extends CustomCenterLevelRouteKey
     ? Omit<ElegantConstRoute, 'component'> & {
-      name: K;
-      path: RouteMap[K];
-      children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
-    }
+        name: K;
+        path: RouteMap[K];
+        children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
+      }
     : never;
 
   /**
@@ -263,11 +261,11 @@ declare module "@elegant-router/types" {
   type CustomMultiLevelRoute<K extends CustomFirstLevelRouteNotSingleKey = CustomFirstLevelRouteNotSingleKey> =
     K extends string
       ? ElegantConstRoute & {
-        name: K;
-        path: RouteMap[K];
-        component: `layout.${RouteLayout}`;
-        children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
-      }
+          name: K;
+          path: RouteMap[K];
+          component: `layout.${RouteLayout}`;
+          children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
+        }
       : never;
 
   /**
