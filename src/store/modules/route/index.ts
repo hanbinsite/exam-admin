@@ -201,6 +201,17 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   }
 
   /** Convert backend MenuItem to ElegantConstRoute with inferred component */
+  function normalizeI18nKey(i18nKey?: string | null): App.I18n.I18nKey | null | undefined {
+    if (!i18nKey) return i18nKey as null | undefined;
+
+    if (i18nKey.startsWith('route.')) {
+      const routeKey = i18nKey.slice(6).replace(/_/g, '-');
+      return `route.${routeKey}` as App.I18n.I18nKey;
+    }
+
+    return i18nKey as App.I18n.I18nKey;
+  }
+
   function convertMenuToRoute(menu: Exam.Auth.MenuItem): ElegantConstRoute {
     const route: ElegantConstRoute = {
       name: menu.name,
@@ -208,7 +219,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
       component: menu.children?.length ? 'layout.base' : `layout.base$view.${menu.name}`,
       meta: {
         title: menu.meta.title,
-        i18nKey: menu.meta.i18nKey as App.I18n.I18nKey | null | undefined,
+        i18nKey: normalizeI18nKey(menu.meta.i18nKey),
         icon: menu.meta.icon,
         order: menu.meta.order,
         hideInMenu: menu.meta.hideInMenu,
@@ -224,7 +235,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
           component: `view.${child.name}`,
           meta: {
             title: child.meta.title,
-            i18nKey: child.meta.i18nKey as App.I18n.I18nKey | null | undefined,
+            i18nKey: normalizeI18nKey(child.meta.i18nKey),
             icon: child.meta.icon,
             order: child.meta.order,
             hideInMenu: child.meta.hideInMenu,
