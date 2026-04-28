@@ -22,6 +22,12 @@ export function fetchAdminMe() {
   });
 }
 
+export function fetchAdminPermissions() {
+  return request<string[]>({
+    url: '/admin/auth/permissions'
+  });
+}
+
 export function fetchUpdateAdminMe(data: { name?: string; email?: string }) {
   return request<Exam.Auth.AdminProfile>({
     url: '/admin/auth/me',

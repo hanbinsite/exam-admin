@@ -326,7 +326,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
    *
    * @param routePath Route path
    */
-  async function getIsAuthRouteExist(routePath: RouteMap[RouteKey]) {
+  async function getIsAuthRouteExist(routePath: RouteMap[RouteKey]): Promise<boolean | 'no_permission'> {
     const routeName = getRouteName(routePath);
 
     if (!routeName) {
@@ -334,7 +334,18 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     }
 
     const { authRoutes: staticAuthRoutes } = createStaticRoutes();
-    return isRouteExistByRouteName(routeName, [...staticAuthRoutes, ...authRoutes.value]);
+    const inAuthRoutes = isRouteExistByRouteName(routeName, [...staticAuthRoutes, ...authRoutes.value]);
+
+    if (inAuthRoutes) {
+      return true;
+    }
+
+    const knownRoute = getRoutePath(routeName as keyof RouteMap);
+    if (knownRoute) {
+      return 'no_permission';
+    }
+
+    return false;
   }
 
   /**

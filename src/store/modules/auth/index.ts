@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchAdminLogin, fetchAdminMe } from '@/service/api';
+import { fetchAdminLogin, fetchAdminMe, fetchAdminPermissions } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -29,6 +29,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   });
 
   const isSuperAdmin = ref(false);
+
+  const permissionCodes = ref<string[]>([]);
 
   const isStaticSuper = computed(() => {
     const { VITE_AUTH_ROUTE_MODE, VITE_STATIC_SUPER_ROLE } = import.meta.env;
@@ -85,6 +87,14 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     return false;
   }
 
+  async function loadPermissionCodes() {
+    const { data } = await fetchAdminPermissions();
+    if (data) {
+      permissionCodes.value = data;
+      localStg.set('permissionCodes', data);
+    }
+  }
+
   async function login(email: string, password: string, redirect = true) {
     startLoading();
 
@@ -94,6 +104,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
       const pass = await loginByToken(loginData);
 
       if (pass) {
+        await loadPermissionCodes();
+
         const isClear = checkTabClear();
         let needRedirect = redirect;
 
@@ -137,11 +149,16 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
       const adminInfo = localStg.get('adminInfo') as Exam.Auth.AdminInfo | null;
       if (adminInfo) {
         Object.assign(userInfo, adminInfo);
+        const cached = localStg.get('permissionCodes') as string[] | null;
+        if (cached) {
+          permissionCodes.value = cached;
+        }
         fetchAdminMe().then(({ data }) => {
           if (data?.role_info) {
             isSuperAdmin.value = data.role_info.is_super;
           }
         });
+        loadPermissionCodes();
       } else {
         resetStore();
       }
@@ -157,6 +174,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     isSuperAdmin,
     isLogin,
     loginLoading,
+    permissionCodes,
     resetStore,
     login,
     initUserInfo

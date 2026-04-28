@@ -12,11 +12,9 @@ export function useAuth() {
       return true;
     }
 
-    if (typeof codes === 'string') {
-      return authStore.userInfo.role === codes;
-    }
+    const codeList = typeof codes === 'string' ? [codes] : codes;
 
-    return codes.includes(authStore.userInfo.role);
+    return codeList.some(code => authStore.permissionCodes.includes(code));
   }
 
   return {

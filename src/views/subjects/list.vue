@@ -2,9 +2,13 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchCreateSubject, fetchDeleteSubject, fetchSubjectList, fetchUpdateSubject } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'SubjectList' });
+
+const { hasAuth } = useAuth();
 
 const loading = ref(false);
 const subjects = ref<Exam.Subject.Subject[]>([]);
@@ -126,7 +130,9 @@ onMounted(loadSubjects);
       <template #header>
         <div class="flex items-center justify-between">
           <p>科目管理</p>
-          <ElButton type="primary" @click="handleAdd">新增科目</ElButton>
+          <ElButton v-if="hasAuth(PERMISSION_CODES.SUBJECT_MANAGE)" type="primary" @click="handleAdd">
+            新增科目
+          </ElButton>
         </div>
       </template>
       <ElTable v-loading="loading" :data="subjects" border stripe>
@@ -135,7 +141,11 @@ onMounted(loadSubjects);
         <ElTableColumn prop="category" label="分类" width="120" />
         <ElTableColumn label="状态" width="100" align="center">
           <template #default="{ row }">
-            <ElSwitch :model-value="row.is_active" @change="handleToggleActive(row)" />
+            <ElSwitch
+              :model-value="row.is_active"
+              :disabled="!hasAuth(PERMISSION_CODES.SUBJECT_MANAGE)"
+              @change="handleToggleActive(row)"
+            />
           </template>
         </ElTableColumn>
         <ElTableColumn label="题目数" width="100" align="center">
@@ -143,8 +153,24 @@ onMounted(loadSubjects);
         </ElTableColumn>
         <ElTableColumn label="操作" width="180" align="center">
           <template #default="{ row }">
-            <ElButton type="primary" link size="small" @click="handleEdit(row)">编辑</ElButton>
-            <ElButton type="danger" link size="small" @click="handleDelete(row)">删除</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.SUBJECT_MANAGE)"
+              type="primary"
+              link
+              size="small"
+              @click="handleEdit(row)"
+            >
+              编辑
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.SUBJECT_MANAGE)"
+              type="danger"
+              link
+              size="small"
+              @click="handleDelete(row)"
+            >
+              删除
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>

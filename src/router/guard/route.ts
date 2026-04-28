@@ -155,6 +155,14 @@ async function initRoute(to: RouteLocationNormalized): Promise<RouteLocationRaw 
   const exist = await routeStore.getIsAuthRouteExist(to.path as RoutePath);
   const noPermissionRoute: RouteKey = '403';
 
+  if (exist === 'no_permission') {
+    const location: RouteLocationRaw = {
+      name: noPermissionRoute
+    };
+
+    return location;
+  }
+
   if (exist) {
     const location: RouteLocationRaw = {
       name: noPermissionRoute
