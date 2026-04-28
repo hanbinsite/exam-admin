@@ -204,9 +204,12 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   function normalizeI18nKey(i18nKey?: string | null): App.I18n.I18nKey | null | undefined {
     if (!i18nKey) return i18nKey as null | undefined;
 
-    if (i18nKey.startsWith('route.')) {
-      const routeKey = i18nKey.slice(6).replace(/_/g, '-');
-      return `route.${routeKey}` as App.I18n.I18nKey;
+    if (i18nKey.startsWith('route.question_types')) {
+      return i18nKey.replace('route.question_types', 'route.question-types') as App.I18n.I18nKey;
+    }
+
+    if (i18nKey.startsWith('route.knowledge_points')) {
+      return i18nKey.replace('route.knowledge_points', 'route.knowledge-points') as App.I18n.I18nKey;
     }
 
     return i18nKey as App.I18n.I18nKey;

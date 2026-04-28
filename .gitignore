@@ -33,4 +33,5 @@ package-lock.json
 yarn.lock
 
 .VSCodeCounter
+# Vercel local metadata
 .vercel
