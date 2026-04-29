@@ -376,7 +376,10 @@
   "data": {
     "routes": [
       {
+        "id": 1,
         "name": "dashboard",
+        "routeKey": "dashboard",
+        "title": "仪表盘",
         "path": "/dashboard",
         "meta": {
           "title": "仪表盘",

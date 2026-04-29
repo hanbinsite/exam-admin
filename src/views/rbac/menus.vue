@@ -31,7 +31,7 @@ const form = reactive({
   }
 });
 
-const editingName = ref<string | null>(null);
+const editingId = ref<number | null>(null);
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入菜单标识', trigger: 'blur' }],
@@ -44,7 +44,7 @@ function resetForm() {
   form.path = '';
   form.parent_name = '';
   form.meta = { title: '', i18nKey: '', icon: '', order: 0, hideInMenu: false, href: '' };
-  editingName.value = null;
+  editingId.value = null;
   formRef.value?.resetFields();
 }
 
@@ -62,7 +62,7 @@ function handleAdd() {
 }
 
 function handleEdit(row: Exam.RBAC.Menu) {
-  editingName.value = row.name;
+  editingId.value = row.id;
   form.name = row.name;
   form.path = row.path;
   form.parent_name = '';
@@ -94,8 +94,8 @@ async function handleSubmit() {
         href: form.meta.href || null
       }
     };
-    if (editingName.value) {
-      const { error } = await fetchUpdateMenu(editingName.value, data);
+    if (editingId.value) {
+      const { error } = await fetchUpdateMenu(editingId.value, data);
       if (!error) {
         ElMessage.success('更新成功');
         dialogVisible.value = false;
@@ -120,7 +120,7 @@ async function handleDelete(row: Exam.RBAC.Menu) {
     cancelButtonText: '取消',
     type: 'warning'
   });
-  const { error } = await fetchDeleteMenu(row.name);
+  const { error } = await fetchDeleteMenu(row.id);
   if (!error) {
     ElMessage.success('删除成功');
     loadData();
@@ -176,8 +176,9 @@ onMounted(loadData);
           </div>
         </div>
       </template>
-      <ElTable v-loading="loading" :data="menus" border stripe row-key="name" default-expand-all>
-        <ElTableColumn label="标识" min-width="160">
+      <ElTable v-loading="loading" :data="menus" border stripe row-key="id" default-expand-all>
+        <ElTableColumn prop="id" label="ID" width="80" />
+        <ElTableColumn label="标识" min-width="160" align="left">
           <template #default="{ row }">
             <span class="font-medium">{{ row.name }}</span>
           </template>
@@ -241,7 +242,7 @@ onMounted(loadData);
         <ElFormItem label="父菜单">
           <ElSelect v-model="form.parent_name" placeholder="留空为顶级菜单" clearable>
             <ElOption
-              v-for="m in flattenMenusWithIndent(menus, 0, editingName)"
+              v-for="m in flattenMenusWithIndent(menus, 0, editingId ? form.name : null)"
               :key="m.name"
               :label="`${'  '.repeat(m.indent)}${m.title}`"
               :value="m.name"
@@ -249,7 +250,7 @@ onMounted(loadData);
           </ElSelect>
         </ElFormItem>
         <ElFormItem label="菜单标识" prop="name">
-          <ElInput v-model="form.name" :disabled="!!editingName" placeholder="唯一标识，如 subjects" />
+          <ElInput v-model="form.name" :disabled="!!editingId" placeholder="唯一标识，如 subjects" />
         </ElFormItem>
         <ElFormItem label="标题" prop="meta.title">
           <ElInput v-model="form.meta.title" placeholder="显示标题，如 科目管理" />

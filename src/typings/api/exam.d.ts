@@ -381,7 +381,10 @@ declare namespace Exam {
     }
 
     interface Menu {
+      id: number;
       name: string;
+      routeKey?: string;
+      title?: string;
       path: string;
       meta: MenuMeta;
       children?: Menu[];
