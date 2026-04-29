@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
-import * as echarts from 'echarts';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchBatchImportQuestions,
@@ -52,8 +51,6 @@ const categories = ref<string[]>([]);
 
 const detailVisible = ref(false);
 const detailItem = ref<Exam.Question.Question | null>(null);
-const pieRef = ref<HTMLElement>();
-let pieInstance: echarts.ECharts | null = null;
 
 const form = reactive<Exam.Question.QuestionCreateRequest>({
   subject_id: '',
@@ -183,34 +180,6 @@ async function loadData() {
     questionTypes.value = typesRes.data;
   }
   loading.value = false;
-
-  if (stats.value?.by_difficulty) {
-    renderPie();
-  }
-}
-
-function renderPie() {
-  if (!pieRef.value || !stats.value?.by_difficulty) return;
-  if (!pieInstance) {
-    pieInstance = echarts.init(pieRef.value);
-  }
-  const diffMap: Record<string, string> = { easy: '简单', medium: '中等', hard: '困难' };
-  const data = Object.entries(stats.value.by_difficulty).map(([key, count]) => ({
-    name: diffMap[key] || key,
-    value: count
-  }));
-  pieInstance.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '70%'],
-        data,
-        label: { show: true, formatter: '{b}\n{d}%' },
-        itemStyle: { borderRadius: 4 }
-      }
-    ]
-  });
 }
 
 watch(
@@ -420,36 +389,27 @@ onMounted(() => {
 
 <template>
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
-    <div class="flex items-center gap-12px">
+    <div class="flex flex-wrap items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
       <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
         <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
+      <template v-if="stats">
+        <span class="mx-4px text-14px text-gray-400">|</span>
+        <ElTag v-for="(count, key) in stats.by_type" :key="key" size="small" type="info">
+          {{ typeNameMap[key] || key }}: {{ count }}
+        </ElTag>
+        <span class="mx-4px text-14px text-gray-400">|</span>
+        <ElTag
+          v-for="(count, key) in stats.by_difficulty"
+          :key="key"
+          size="small"
+          :type="difficultyMap[key]?.type || 'info'"
+        >
+          {{ (difficultyMap[key] || { label: key }).label }}: {{ count }}
+        </ElTag>
+      </template>
     </div>
-
-    <ElRow v-if="stats" :gutter="16">
-      <ElCol v-for="(count, key) in stats.by_type" :key="key" :sm="8" :xs="24">
-        <ElCard shadow="hover" class="mb-16px">
-          <ElStatistic :title="typeNameMap[key] || key" :value="count" />
-        </ElCard>
-      </ElCol>
-    </ElRow>
-
-    <ElRow v-if="stats" :gutter="16">
-      <ElCol v-for="(count, key) in stats.by_difficulty" :key="key" :sm="8" :xs="24">
-        <ElCard shadow="hover" class="mb-16px">
-          <ElStatistic :title="(difficultyMap[key] || { label: key }).label" :value="count" />
-        </ElCard>
-      </ElCol>
-    </ElRow>
-
-    <ElRow v-if="stats?.by_difficulty" :gutter="16">
-      <ElCol :sm="12" :xs="24">
-        <ElCard shadow="hover" class="mb-16px">
-          <div ref="pieRef" style="height: 280px; width: 100%" />
-        </ElCard>
-      </ElCol>
-    </ElRow>
 
     <ElCard class="card-wrapper sm:flex-1-hidden">
       <template #header>
