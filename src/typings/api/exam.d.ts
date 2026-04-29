@@ -340,8 +340,16 @@ declare namespace Exam {
       id: string;
       name: string;
       email: string;
+      phone?: string;
+      user_code?: string;
+      submissions_count?: number;
       is_active: boolean;
       created_at: string;
+    }
+
+    interface UserDetail extends User {
+      avatar?: string;
+      last_login?: string;
     }
 
     interface UserListData {
@@ -349,6 +357,7 @@ declare namespace Exam {
       total: number;
       page: number;
       page_size: number;
+      total_pages?: number;
     }
   }
 

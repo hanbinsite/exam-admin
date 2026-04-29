@@ -15,8 +15,8 @@ export function fetchUserList(page: number = 1, pageSize: number = 20, keyword?:
   });
 }
 
-export function fetchUserById(userId: string) {
-  return request<Exam.User.User>({
+export function fetchUserDetail(userId: string) {
+  return request<Exam.User.UserDetail>({
     url: `/admin/users/${userId}`
   });
 }

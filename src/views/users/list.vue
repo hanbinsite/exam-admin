@@ -9,6 +9,7 @@ import {
   fetchCreateUser,
   fetchDeleteUser,
   fetchResetUserPassword,
+  fetchUserDetail,
   fetchUserList
 } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
@@ -31,6 +32,9 @@ const newPassword = ref('');
 const assignCodeDialogVisible = ref(false);
 const assignCodeSubmitting = ref(false);
 const assignCodeInput = ref('');
+const detailDialogVisible = ref(false);
+const detailLoading = ref(false);
+const detailUser = ref<Exam.User.UserDetail | null>(null);
 
 const createDialogVisible = ref(false);
 const createSubmitting = ref(false);
@@ -181,6 +185,17 @@ async function handleCreateSubmit() {
   }
 }
 
+async function handleViewDetail(row: Exam.User.User) {
+  detailDialogVisible.value = true;
+  detailLoading.value = true;
+  detailUser.value = null;
+  const { data } = await fetchUserDetail(row.id);
+  if (data) {
+    detailUser.value = data;
+  }
+  detailLoading.value = false;
+}
+
 onMounted(loadUsers);
 </script>
 
@@ -207,23 +222,40 @@ onMounted(loadUsers);
         </div>
       </template>
       <ElTable v-loading="loading" :data="users" border stripe>
-        <ElTableColumn prop="id" label="ID" width="280" />
-        <ElTableColumn prop="name" label="姓名" min-width="150" />
-        <ElTableColumn prop="email" label="邮箱" min-width="250" />
-        <ElTableColumn label="状态" width="100" align="center">
+        <ElTableColumn prop="id" label="ID" width="120" show-overflow-tooltip />
+        <ElTableColumn prop="name" label="姓名" min-width="120" />
+        <ElTableColumn prop="email" label="邮箱" min-width="200" />
+        <ElTableColumn prop="user_code" label="查询码" width="100" align="center">
           <template #default="{ row }">
-            <ElTag :type="row.is_active ? 'success' : 'danger'">
+            <ElTag v-if="row.user_code" size="small" type="info">{{ row.user_code }}</ElTag>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="phone" label="手机号" width="140" align="center">
+          <template #default="{ row }">
+            {{ row.phone || '-' }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="状态" width="80" align="center">
+          <template #default="{ row }">
+            <ElTag :type="row.is_active ? 'success' : 'danger'" size="small">
               {{ row.is_active ? '活跃' : '停用' }}
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="注册时间" width="180">
+        <ElTableColumn prop="submissions_count" label="答题次数" width="90" align="center">
+          <template #default="{ row }">
+            {{ row.submissions_count ?? '-' }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="注册时间" width="170">
           <template #default="{ row }">
             {{ row.created_at ? new Date(row.created_at).toLocaleString('zh-CN') : '-' }}
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="250" align="center">
+        <ElTableColumn label="操作" width="290" align="center">
           <template #default="{ row }">
+            <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
             <ElButton
               v-if="!row.is_active && hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
               type="success"
@@ -258,7 +290,7 @@ onMounted(loadUsers);
               size="small"
               @click="handleAssignCode(row)"
             >
-              分配查询码
+              查询码
             </ElButton>
           </template>
         </ElTableColumn>
@@ -322,6 +354,39 @@ onMounted(loadUsers);
       <template #footer>
         <ElButton @click="createDialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="createSubmitting" @click="handleCreateSubmit">确认创建</ElButton>
+      </template>
+    </ElDialog>
+    <ElDialog v-model="detailDialogVisible" title="用户详情" width="500px">
+      <div v-loading="detailLoading">
+        <template v-if="detailUser">
+          <ElDescriptions :column="2" border>
+            <ElDescriptionsItem label="ID" :span="2">{{ detailUser.id }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="姓名">{{ detailUser.name }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="邮箱">{{ detailUser.email }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="手机号">{{ detailUser.phone || '-' }}</ElDescriptionsItem>
+            <ElDescriptionsItem label="查询码">
+              <ElTag v-if="detailUser.user_code" size="small" type="info">{{ detailUser.user_code }}</ElTag>
+              <span v-else>-</span>
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="状态">
+              <ElTag :type="detailUser.is_active ? 'success' : 'danger'" size="small">
+                {{ detailUser.is_active ? '活跃' : '停用' }}
+              </ElTag>
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="注册时间">
+              {{ detailUser.created_at ? new Date(detailUser.created_at).toLocaleString('zh-CN') : '-' }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem label="最后登录">
+              {{ detailUser.last_login ? new Date(detailUser.last_login).toLocaleString('zh-CN') : '-' }}
+            </ElDescriptionsItem>
+            <ElDescriptionsItem v-if="detailUser.avatar" label="头像" :span="2">
+              <ElAvatar :src="detailUser.avatar" :size="60" />
+            </ElDescriptionsItem>
+          </ElDescriptions>
+        </template>
+      </div>
+      <template #footer>
+        <ElButton @click="detailDialogVisible = false">关闭</ElButton>
       </template>
     </ElDialog>
   </div>

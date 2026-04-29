@@ -533,6 +533,8 @@
         "id": "abc123",
         "name": "张三",
         "email": "zhangsan@example.com",
+        "phone": "13800138000",
+        "user_code": "A3K9X2",
         "is_active": true,
         "submissions_count": 5,
         "created_at": "2026-04-21T10:00:00+00:00"
@@ -570,6 +572,7 @@
     "name": "张三",
     "email": "zhangsan@example.com",
     "phone": "13800138000",
+    "user_code": "A3K9X2",
     "avatar": "https://example.com/avatar.jpg",
     "is_active": true,
     "created_at": "2026-04-21T10:00:00+00:00",
