@@ -23,27 +23,14 @@ export function setupElegantRouter() {
         'document_element-plus',
         'document_alova',
         'subjects',
-        'subjects_list',
         'question-types',
-        'question-types_list',
         'questions',
-        'questions_list',
         'knowledge-points',
-        'knowledge-points_list',
         'materials',
-        'materials_list',
         'exams',
-        'exams_list',
-        'exams_sessions',
         'scores',
-        'scores_list',
         'users',
-        'users_list',
-        'rbac',
-        'rbac_permissions',
-        'rbac_roles',
-        'rbac_admins',
-        'rbac_menus'
+        'rbac'
       ]
     },
     routePathTransformer(routeName, routePath) {

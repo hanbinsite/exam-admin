@@ -31,35 +31,35 @@ declare module "@elegant-router/types" {
     "document_antd": "/document/antd";
     "document_element-plus": "/document/element-plus";
     "document_alova": "/document/alova";
-    "subjects": "/subjects";
-    "subjects_list": "/subjects/list";
-    "question-types": "/question-types";
-    "question-types_list": "/question-types/list";
-    "questions": "/questions";
-    "questions_list": "/questions/list";
-    "knowledge-points": "/knowledge-points";
-    "knowledge-points_list": "/knowledge-points/list";
-    "materials": "/materials";
-    "materials_list": "/materials/list";
-    "exams": "/exams";
-    "exams_list": "/exams/list";
-    "exams_sessions": "/exams/sessions/:examId";
-    "scores": "/scores";
-    "scores_list": "/scores/list";
-    "users": "/users";
-    "users_list": "/users/list";
-    "rbac": "/rbac";
-    "rbac_permissions": "/rbac/permissions";
-    "rbac_roles": "/rbac/roles";
-    "rbac_admins": "/rbac/admins";
-    "rbac_menus": "/rbac/menus";
     "403": "/403";
     "404": "/404";
     "500": "/500";
     "dashboard": "/dashboard";
+    "exams": "/exams";
+    "exams_list": "/exams/list";
+    "exams_sessions": "/exams/sessions/:examId";
     "iframe-page": "/iframe-page/:url";
+    "knowledge-points": "/knowledge-points";
+    "knowledge-points_list": "/knowledge-points/list";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
+    "materials": "/materials";
+    "materials_list": "/materials/list";
+    "question-types": "/question-types";
+    "question-types_list": "/question-types/list";
+    "questions": "/questions";
+    "questions_list": "/questions/list";
+    "rbac": "/rbac";
+    "rbac_admins": "/rbac/admins";
+    "rbac_menus": "/rbac/menus";
+    "rbac_permissions": "/rbac/permissions";
+    "rbac_roles": "/rbac/roles";
+    "scores": "/scores";
+    "scores_list": "/scores/list";
+    "subjects": "/subjects";
+    "subjects_list": "/subjects/list";
     "user-center": "/user-center";
+    "users": "/users";
+    "users_list": "/users/list";
   };
 
   /**
@@ -93,28 +93,6 @@ declare module "@elegant-router/types" {
     | "document_antd"
     | "document_element-plus"
     | "document_alova"
-    | "subjects"
-    | "subjects_list"
-    | "question-types"
-    | "question-types_list"
-    | "questions"
-    | "questions_list"
-    | "knowledge-points"
-    | "knowledge-points_list"
-    | "materials"
-    | "materials_list"
-    | "exams"
-    | "exams_list"
-    | "exams_sessions"
-    | "scores"
-    | "scores_list"
-    | "users"
-    | "users_list"
-    | "rbac"
-    | "rbac_permissions"
-    | "rbac_roles"
-    | "rbac_admins"
-    | "rbac_menus"
   >;
 
   /**
@@ -131,9 +109,18 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "dashboard"
+    | "exams"
     | "iframe-page"
+    | "knowledge-points"
     | "login"
+    | "materials"
+    | "question-types"
+    | "questions"
+    | "rbac"
+    | "scores"
+    | "subjects"
     | "user-center"
+    | "users"
   >;
 
   /**
@@ -145,15 +132,6 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "exception"
     | "document"
-    | "subjects"
-    | "question-types"
-    | "questions"
-    | "knowledge-points"
-    | "materials"
-    | "exams"
-    | "scores"
-    | "users"
-    | "rbac"
   >;
 
   /**
@@ -167,7 +145,20 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "dashboard"
+    | "exams_list"
+    | "exams_sessions"
+    | "knowledge-points_list"
+    | "materials_list"
+    | "question-types_list"
+    | "questions_list"
+    | "rbac_admins"
+    | "rbac_menus"
+    | "rbac_permissions"
+    | "rbac_roles"
+    | "scores_list"
+    | "subjects_list"
     | "user-center"
+    | "users_list"
   >;
 
   /**
@@ -189,28 +180,6 @@ declare module "@elegant-router/types" {
     | "document_antd"
     | "document_element-plus"
     | "document_alova"
-    | "subjects"
-    | "subjects_list"
-    | "question-types"
-    | "question-types_list"
-    | "questions"
-    | "questions_list"
-    | "knowledge-points"
-    | "knowledge-points_list"
-    | "materials"
-    | "materials_list"
-    | "exams"
-    | "exams_list"
-    | "exams_sessions"
-    | "scores"
-    | "scores_list"
-    | "users"
-    | "users_list"
-    | "rbac"
-    | "rbac_permissions"
-    | "rbac_roles"
-    | "rbac_admins"
-    | "rbac_menus"
   >;
 
   /**

@@ -49,6 +49,35 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'exams',
+    path: '/exams',
+    component: 'layout.base',
+    meta: {
+      title: 'exams',
+      i18nKey: 'route.exams'
+    },
+    children: [
+      {
+        name: 'exams_list',
+        path: '/exams/list',
+        component: 'view.exams_list',
+        meta: {
+          title: 'exams_list',
+          i18nKey: 'route.exams_list'
+        }
+      },
+      {
+        name: 'exams_sessions',
+        path: '/exams/sessions/:examId',
+        component: 'view.exams_sessions',
+        meta: {
+          title: 'exams_sessions',
+          i18nKey: 'route.exams_sessions'
+        }
+      }
+    ]
+  },
+  {
     name: 'iframe-page',
     path: '/iframe-page/:url',
     component: 'layout.base$view.iframe-page',
@@ -60,6 +89,26 @@ export const generatedRoutes: GeneratedRoute[] = [
       hideInMenu: true,
       keepAlive: true
     }
+  },
+  {
+    name: 'knowledge-points',
+    path: '/knowledge-points',
+    component: 'layout.base',
+    meta: {
+      title: 'knowledge-points',
+      i18nKey: 'route.knowledge-points'
+    },
+    children: [
+      {
+        name: 'knowledge-points_list',
+        path: '/knowledge-points/list',
+        component: 'view.knowledge-points_list',
+        meta: {
+          title: 'knowledge-points_list',
+          i18nKey: 'route.knowledge-points_list'
+        }
+      }
+    ]
   },
   {
     name: 'login',
@@ -74,6 +123,153 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'materials',
+    path: '/materials',
+    component: 'layout.base',
+    meta: {
+      title: 'materials',
+      i18nKey: 'route.materials'
+    },
+    children: [
+      {
+        name: 'materials_list',
+        path: '/materials/list',
+        component: 'view.materials_list',
+        meta: {
+          title: 'materials_list',
+          i18nKey: 'route.materials_list'
+        }
+      }
+    ]
+  },
+  {
+    name: 'question-types',
+    path: '/question-types',
+    component: 'layout.base',
+    meta: {
+      title: 'question-types',
+      i18nKey: 'route.question-types'
+    },
+    children: [
+      {
+        name: 'question-types_list',
+        path: '/question-types/list',
+        component: 'view.question-types_list',
+        meta: {
+          title: 'question-types_list',
+          i18nKey: 'route.question-types_list'
+        }
+      }
+    ]
+  },
+  {
+    name: 'questions',
+    path: '/questions',
+    component: 'layout.base',
+    meta: {
+      title: 'questions',
+      i18nKey: 'route.questions'
+    },
+    children: [
+      {
+        name: 'questions_list',
+        path: '/questions/list',
+        component: 'view.questions_list',
+        meta: {
+          title: 'questions_list',
+          i18nKey: 'route.questions_list'
+        }
+      }
+    ]
+  },
+  {
+    name: 'rbac',
+    path: '/rbac',
+    component: 'layout.base',
+    meta: {
+      title: 'rbac',
+      i18nKey: 'route.rbac'
+    },
+    children: [
+      {
+        name: 'rbac_admins',
+        path: '/rbac/admins',
+        component: 'view.rbac_admins',
+        meta: {
+          title: 'rbac_admins',
+          i18nKey: 'route.rbac_admins'
+        }
+      },
+      {
+        name: 'rbac_menus',
+        path: '/rbac/menus',
+        component: 'view.rbac_menus',
+        meta: {
+          title: 'rbac_menus',
+          i18nKey: 'route.rbac_menus'
+        }
+      },
+      {
+        name: 'rbac_permissions',
+        path: '/rbac/permissions',
+        component: 'view.rbac_permissions',
+        meta: {
+          title: 'rbac_permissions',
+          i18nKey: 'route.rbac_permissions'
+        }
+      },
+      {
+        name: 'rbac_roles',
+        path: '/rbac/roles',
+        component: 'view.rbac_roles',
+        meta: {
+          title: 'rbac_roles',
+          i18nKey: 'route.rbac_roles'
+        }
+      }
+    ]
+  },
+  {
+    name: 'scores',
+    path: '/scores',
+    component: 'layout.base',
+    meta: {
+      title: 'scores',
+      i18nKey: 'route.scores'
+    },
+    children: [
+      {
+        name: 'scores_list',
+        path: '/scores/list',
+        component: 'view.scores_list',
+        meta: {
+          title: 'scores_list',
+          i18nKey: 'route.scores_list'
+        }
+      }
+    ]
+  },
+  {
+    name: 'subjects',
+    path: '/subjects',
+    component: 'layout.base',
+    meta: {
+      title: 'subjects',
+      i18nKey: 'route.subjects'
+    },
+    children: [
+      {
+        name: 'subjects_list',
+        path: '/subjects/list',
+        component: 'view.subjects_list',
+        meta: {
+          title: 'subjects_list',
+          i18nKey: 'route.subjects_list'
+        }
+      }
+    ]
+  },
+  {
     name: 'user-center',
     path: '/user-center',
     component: 'layout.base$view.user-center',
@@ -82,5 +278,25 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.user-center',
       hideInMenu: true
     }
+  },
+  {
+    name: 'users',
+    path: '/users',
+    component: 'layout.base',
+    meta: {
+      title: 'users',
+      i18nKey: 'route.users'
+    },
+    children: [
+      {
+        name: 'users_list',
+        path: '/users/list',
+        component: 'view.users_list',
+        meta: {
+          title: 'users_list',
+          i18nKey: 'route.users_list'
+        }
+      }
+    ]
   }
 ];
