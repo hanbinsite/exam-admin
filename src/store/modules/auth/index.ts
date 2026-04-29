@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useLoading } from '@sa/hooks';
-import { fetchAdminLogin, fetchAdminMe, fetchAdminPermissions } from '@/service/api';
+import { fetchAdminLogin, fetchAdminLogout, fetchAdminMe, fetchAdminPermissions } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
 import { SetupStoreId } from '@/enum';
@@ -53,6 +53,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     localStg.remove('currentSubjectId');
 
     authStore.$reset();
+
+    fetchAdminLogout().catch(() => {});
 
     if (!route.meta.constant) {
       await toLogin();

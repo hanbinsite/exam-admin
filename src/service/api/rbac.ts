@@ -173,7 +173,27 @@ export function fetchRemoveSubjectAdmin(adminId: string, subjectId: string) {
   return request<null>({
     url: '/admin/rbac/subject-admins',
     method: 'delete',
-    data: { admin_id: adminId, subject_id: subjectId }
+    params: { adminId, subjectId }
+  });
+}
+
+export function fetchAdminDetail(adminId: string) {
+  return request<Exam.RBAC.AdminDetail>({
+    url: `/admin/rbac/admins/${adminId}`
+  });
+}
+
+export function fetchDeactivateAdmin(adminId: string) {
+  return request<{ id: string; is_active: boolean }>({
+    url: `/admin/rbac/admins/${adminId}/deactivate`,
+    method: 'put'
+  });
+}
+
+export function fetchActivateAdmin(adminId: string) {
+  return request<{ id: string; is_active: boolean }>({
+    url: `/admin/rbac/admins/${adminId}/activate`,
+    method: 'put'
   });
 }
 
@@ -201,6 +221,6 @@ export function fetchRemoveUserSubject(userId: string, subjectId: string) {
   return request<null>({
     url: '/admin/rbac/user-subjects',
     method: 'delete',
-    data: { user_id: userId, subject_id: subjectId }
+    params: { userId, subjectId }
   });
 }

@@ -10,6 +10,12 @@ export function fetchMaterialList(
   });
 }
 
+export function fetchMaterialDetail(materialId: number) {
+  return request<Exam.Material.Material>({
+    url: `/materials/${materialId}`
+  });
+}
+
 export function fetchCreateMaterial(data: Exam.Material.MaterialCreateRequest) {
   return request<Exam.Material.Material>({
     url: '/admin/materials',

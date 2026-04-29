@@ -14,7 +14,7 @@ export function fetchExamById(examId: number) {
 
 export function fetchAdminExamDetail(examId: number) {
   return request<Exam.ExamModule.ExamConfig>({
-    url: `/admin/exams/${examId}`
+    url: `/exams/${examId}`
   });
 }
 

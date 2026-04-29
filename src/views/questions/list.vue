@@ -2,11 +2,13 @@
 import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import * as echarts from 'echarts';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchBatchImportQuestions,
   fetchCreateQuestion,
   fetchDeleteQuestion,
+  fetchQuestionDetail,
   fetchQuestionList,
   fetchQuestionStats,
   fetchQuestionTypeList,
@@ -38,6 +40,13 @@ const searchKeyword = ref('');
 const filterTypeId = ref<number | undefined>(undefined);
 const filterDifficulty = ref<'' | 'easy' | 'medium' | 'hard'>('');
 const filterCategory = ref('');
+
+const categories = ref<string[]>([]);
+
+const detailVisible = ref(false);
+const detailItem = ref<Exam.Question.Question | null>(null);
+const pieRef = ref<HTMLElement>();
+let pieInstance: echarts.ECharts | null = null;
 
 const form = reactive<Exam.Question.QuestionCreateRequest>({
   subject_id: '',
@@ -139,9 +148,7 @@ function removeTag(tag: string) {
 async function loadData() {
   if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const [statsRes, typesRes, listRes] = await Promise.all([
-    fetchQuestionStats(examStore.currentSubjectId),
-    fetchQuestionTypeList(examStore.currentSubjectId),
+  const [listRes, statsRes, typesRes] = await Promise.all([
     fetchQuestionList(examStore.currentSubjectId, {
       page: currentPage.value,
       pageSize: pageSize.value,
@@ -149,15 +156,54 @@ async function loadData() {
       difficulty: filterDifficulty.value || undefined,
       category: filterCategory.value || undefined,
       keyword: searchKeyword.value || undefined
-    })
+    }),
+    fetchQuestionStats(examStore.currentSubjectId),
+    fetchQuestionTypeList(examStore.currentSubjectId)
   ]);
-  if (!statsRes.error && statsRes.data) stats.value = statsRes.data;
-  if (!typesRes.error && typesRes.data) questionTypes.value = typesRes.data;
   if (!listRes.error && listRes.data) {
     questions.value = listRes.data.items;
     total.value = listRes.data.total;
+    const cats = new Set<string>();
+    listRes.data.items.forEach(q => {
+      if (q.category) cats.add(q.category);
+    });
+    categories.value = [...cats].sort();
+  }
+  if (!statsRes.error && statsRes.data) {
+    stats.value = statsRes.data;
+  }
+  if (!typesRes.error && typesRes.data) {
+    questionTypes.value = typesRes.data;
   }
   loading.value = false;
+
+  if (stats.value?.by_difficulty) {
+    renderPie();
+  }
+}
+
+function renderPie() {
+  if (!pieRef.value || !stats.value?.by_difficulty) return;
+  if (!pieInstance) {
+    pieInstance = echarts.init(pieRef.value);
+  }
+  const diffMap: Record<string, string> = { easy: '简单', medium: '中等', hard: '困难' };
+  const data = Object.entries(stats.value.by_difficulty).map(([key, count]) => ({
+    name: diffMap[key] || key,
+    value: count
+  }));
+  pieInstance.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        data,
+        label: { show: true, formatter: '{b}\n{d}%' },
+        itemStyle: { borderRadius: 4 }
+      }
+    ]
+  });
 }
 
 watch(
@@ -191,7 +237,7 @@ function handleAdd() {
   dialogVisible.value = true;
 }
 
-function handleEdit(row: Exam.Question.QuestionListItem) {
+async function handleEdit(row: Exam.Question.QuestionListItem) {
   resetForm();
   editingId.value = row.id;
   form.subject_id = examStore.currentSubjectId;
@@ -201,8 +247,24 @@ function handleEdit(row: Exam.Question.QuestionListItem) {
   form.score = row.score;
   form.category = row.category || '';
   form.sort_order = row.sort_order;
-  correctAnswer.value = row.answer;
-  correctAnswerMulti.value = row.answer ? row.answer.split(',') : [];
+
+  const { data: detail } = await fetchQuestionDetail(row.id);
+  if (detail) {
+    form.content = detail.content || {};
+    form.explanation = detail.explanation || '';
+    form.tags = detail.tags || [];
+    if (detail.content?.options) {
+      optionItems.value = detail.content.options.map(opt => ({ key: opt.key, text: opt.text }));
+    }
+    if (detail.answer) {
+      form.answer = detail.answer;
+      correctAnswer.value = detail.answer;
+      correctAnswerMulti.value = detail.answer.split(',');
+    }
+  }
+
+  correctAnswer.value = form.answer;
+  correctAnswerMulti.value = form.answer ? form.answer.split(',') : [];
   const matchedType = questionTypes.value.find(t => t.name === row.type?.name);
   if (matchedType) {
     form.type_id = matchedType.id;
@@ -251,6 +313,28 @@ async function handleDelete(row: Exam.Question.QuestionListItem) {
     ElMessage.success('删除成功');
     loadData();
   }
+}
+
+async function handleViewDetail(row: Exam.Question.QuestionListItem) {
+  const { data } = await fetchQuestionDetail(row.id);
+  if (data) {
+    detailItem.value = data;
+  } else {
+    detailItem.value = {
+      id: row.id,
+      subject_id: examStore.currentSubjectId,
+      type_id: 0,
+      title: row.title,
+      answer: row.answer,
+      difficulty: row.difficulty,
+      score: row.score,
+      category: row.category,
+      content: {},
+      explanation: '',
+      tags: []
+    };
+  }
+  detailVisible.value = true;
 }
 
 function handleImport() {
@@ -350,6 +434,11 @@ onMounted(() => {
           <ElStatistic :title="(difficultyMap[key] || { label: key }).label" :value="count" />
         </ElCard>
       </ElCol>
+      <ElCol :sm="12" :xs="24">
+        <ElCard shadow="hover" class="mb-16px">
+          <div ref="pieRef" style="height: 200px" />
+        </ElCard>
+      </ElCol>
     </ElRow>
 
     <ElCard class="card-wrapper sm:flex-1-hidden">
@@ -385,14 +474,15 @@ onMounted(() => {
               <ElOption label="中等" value="medium" />
               <ElOption label="困难" value="hard" />
             </ElSelect>
-            <ElInput
+            <ElSelect
               v-model="filterCategory"
               placeholder="分类筛选"
               clearable
               style="width: 140px"
-              @clear="handleSearch"
-              @keyup.enter="handleSearch"
-            />
+              @change="handleSearch"
+            >
+              <ElOption v-for="c in categories" :key="c" :label="c" :value="c" />
+            </ElSelect>
             <ElButton v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)" @click="handleImport">批量导入</ElButton>
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
@@ -427,8 +517,9 @@ onMounted(() => {
         </ElTableColumn>
         <ElTableColumn prop="score" label="分值" width="70" align="center" />
         <ElTableColumn prop="answer" label="答案" width="80" align="center" />
-        <ElTableColumn label="操作" width="150" align="center" fixed="right">
+        <ElTableColumn label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
+            <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
               type="primary"
@@ -549,6 +640,41 @@ onMounted(() => {
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="detailVisible" title="题目详情" width="700px">
+      <template v-if="detailItem">
+        <ElDescriptions :column="2" border>
+          <ElDescriptionsItem label="ID">{{ detailItem.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="题型">{{ detailItem.type_id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="难度" :span="2">
+            <ElTag :type="difficultyMap[detailItem.difficulty]?.type" size="small">
+              {{ difficultyMap[detailItem.difficulty]?.label || detailItem.difficulty }}
+            </ElTag>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="题干" :span="2">
+            {{ detailItem.title }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem v-if="detailItem.content?.options" label="选项" :span="2">
+            <div v-for="opt in detailItem.content.options" :key="opt.key" class="mb-4px">
+              <ElTag size="small" class="mr-4px">{{ opt.key }}</ElTag>
+              <span>{{ opt.text }}</span>
+            </div>
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="答案" :span="2">{{ detailItem.answer }}</ElDescriptionsItem>
+          <ElDescriptionsItem v-if="detailItem.explanation" label="解析" :span="2">
+            {{ detailItem.explanation }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="分值">{{ detailItem.score }} 分</ElDescriptionsItem>
+          <ElDescriptionsItem label="分类">{{ detailItem.category || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="标签" :span="2">
+            <ElTag v-for="tag in detailItem.tags || []" :key="tag" class="mr-4px" size="small">{{ tag }}</ElTag>
+          </ElDescriptionsItem>
+        </ElDescriptions>
+      </template>
+      <template #footer>
+        <ElButton @click="detailVisible = false">关闭</ElButton>
       </template>
     </ElDialog>
 

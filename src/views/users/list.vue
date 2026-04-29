@@ -2,7 +2,13 @@
 import { onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
-import { fetchActivateUser, fetchDeleteUser, fetchResetUserPassword, fetchUserList } from '@/service/api';
+import {
+  fetchActivateUser,
+  fetchAssignUserCode,
+  fetchDeleteUser,
+  fetchResetUserPassword,
+  fetchUserList
+} from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'UserList' });
@@ -20,6 +26,9 @@ const resetPwdSubmitting = ref(false);
 const currentUserId = ref('');
 const currentUserName = ref('');
 const newPassword = ref('');
+const assignCodeDialogVisible = ref(false);
+const assignCodeSubmitting = ref(false);
+const assignCodeInput = ref('');
 
 async function loadUsers() {
   loading.value = true;
@@ -60,12 +69,15 @@ async function handleResetPwdSubmit() {
     return;
   }
   resetPwdSubmitting.value = true;
-  const { error } = await fetchResetUserPassword(currentUserId.value, newPassword.value);
-  if (!error) {
-    ElMessage.success('密码重置成功');
-    resetPwdDialogVisible.value = false;
+  try {
+    const { error } = await fetchResetUserPassword(currentUserId.value, newPassword.value);
+    if (!error) {
+      ElMessage.success('密码重置成功');
+      resetPwdDialogVisible.value = false;
+    }
+  } finally {
+    resetPwdSubmitting.value = false;
   }
-  resetPwdSubmitting.value = false;
 }
 
 async function handleActivate(row: Exam.User.User) {
@@ -91,6 +103,26 @@ async function handleDeactivate(row: Exam.User.User) {
   if (!error) {
     ElMessage.success('停用成功');
     loadUsers();
+  }
+}
+
+function handleAssignCode(row: Exam.User.User) {
+  currentUserId.value = row.id;
+  currentUserName.value = row.name;
+  assignCodeInput.value = '';
+  assignCodeDialogVisible.value = true;
+}
+
+async function handleAssignCodeSubmit() {
+  assignCodeSubmitting.value = true;
+  try {
+    const { data, error } = await fetchAssignUserCode(currentUserId.value, assignCodeInput.value || undefined);
+    if (!error && data) {
+      ElMessage.success(`查询码已分配：${data.user_code}`);
+      assignCodeDialogVisible.value = false;
+    }
+  } finally {
+    assignCodeSubmitting.value = false;
   }
 }
 
@@ -161,6 +193,15 @@ onMounted(loadUsers);
             >
               重置密码
             </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="warning"
+              link
+              size="small"
+              @click="handleAssignCode(row)"
+            >
+              分配查询码
+            </ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -188,6 +229,21 @@ onMounted(loadUsers);
       <template #footer>
         <ElButton @click="resetPwdDialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="resetPwdSubmitting" @click="handleResetPwdSubmit">确认重置</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="assignCodeDialogVisible" title="分配用户查询码" width="400px">
+      <ElForm label-width="80px">
+        <ElFormItem label="用户">
+          <ElInput :model-value="currentUserName" disabled />
+        </ElFormItem>
+        <ElFormItem label="查询码">
+          <ElInput v-model="assignCodeInput" placeholder="留空则自动生成" maxlength="12" />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="assignCodeDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="assignCodeSubmitting" @click="handleAssignCodeSubmit">确认分配</ElButton>
       </template>
     </ElDialog>
   </div>

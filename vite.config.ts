@@ -1,16 +1,16 @@
 import process from 'node:process';
 import { URL, fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
-import { setupVitePlugins } from './build/plugins';
 import { createViteProxy, getBuildTime } from './build/config';
 
-export default defineConfig(configEnv => {
+export default defineConfig(async configEnv => {
   const viteEnv = loadEnv(configEnv.mode, process.cwd()) as unknown as Env.ImportMeta;
 
   const buildTime = getBuildTime();
 
   const enableProxy = configEnv.command === 'serve' && !configEnv.isPreview;
 
+  const { setupVitePlugins } = await import('./build/plugins');
   return {
     base: viteEnv.VITE_BASE_URL,
     resolve: {
@@ -27,7 +27,7 @@ export default defineConfig(configEnv => {
         }
       }
     },
-    plugins: setupVitePlugins(viteEnv, buildTime),
+    plugins: await setupVitePlugins(viteEnv, buildTime),
     define: {
       BUILD_TIME: JSON.stringify(buildTime)
     },

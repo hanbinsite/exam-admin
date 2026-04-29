@@ -34,3 +34,11 @@ export function fetchResetUserPassword(userId: string, newPassword: string) {
     data: { new_password: newPassword }
   });
 }
+
+export function fetchAssignUserCode(userId: string, userCode?: string) {
+  return request<{ user_id: string; user_code: string }>({
+    url: `/admin/users/${userId}/assign-code`,
+    method: 'put',
+    data: userCode ? { user_code: userCode } : {}
+  });
+}

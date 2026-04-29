@@ -30,7 +30,7 @@ export const request = createFlatRequest(
       return config;
     },
     isBackendSuccess(response) {
-      return response.data.code === 200;
+      return response.data.code === 200 || response.data.code === 201;
     },
     async onBackendFail(response) {
       const authStore = useAuthStore();

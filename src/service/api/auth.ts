@@ -43,3 +43,10 @@ export function fetchChangePassword(oldPassword: string, newPassword: string) {
     data: { old_password: oldPassword, new_password: newPassword }
   });
 }
+
+export function fetchAdminLogout() {
+  return request<null>({
+    url: '/admin/auth/logout',
+    method: 'post'
+  });
+}

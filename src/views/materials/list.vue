@@ -3,7 +3,13 @@ import { onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
-import { fetchCreateMaterial, fetchDeleteMaterial, fetchMaterialList, fetchUpdateMaterial } from '@/service/api';
+import {
+  fetchCreateMaterial,
+  fetchDeleteMaterial,
+  fetchMaterialDetail,
+  fetchMaterialList,
+  fetchUpdateMaterial
+} from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
 import { useAuth } from '@/hooks/business/auth';
 
@@ -13,6 +19,8 @@ const examStore = useExamStore();
 const { hasAuth } = useAuth();
 const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
+const viewMode = ref<'table' | 'card'>('table');
+const contentPreview = ref(false);
 const activeTab = ref<Exam.Material.MaterialType>('guide');
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const dialogVisible = ref(false);
@@ -33,6 +41,8 @@ const form = reactive<Exam.Material.MaterialCreateRequest>({
 });
 
 const editingId = ref<number | null>(null);
+const materialDetailVisible = ref(false);
+const currentMaterialDetail = ref<Exam.Material.Material | null>(null);
 
 const typeLabels: Record<Exam.Material.MaterialType, string> = {
   guide: '实操指南',
@@ -134,6 +144,14 @@ async function handleDelete(row: Exam.Material.Material) {
   }
 }
 
+async function handleViewDetail(row: Exam.Material.Material) {
+  const { data, error } = await fetchMaterialDetail(row.id);
+  if (!error && data) {
+    currentMaterialDetail.value = data;
+    materialDetailVisible.value = true;
+  }
+}
+
 function addTag() {
   const tags = tagInput.value
     .split(',')
@@ -185,17 +203,23 @@ onMounted(() => {
             <ElTabPane label="实操任务" name="practice_task" />
             <ElTabPane label="案例分析" name="case_analysis" />
           </ElTabs>
-          <ElButton
-            v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)"
-            type="primary"
-            :disabled="!examStore.currentSubjectId"
-            @click="handleAdd"
-          >
-            新增{{ typeLabels[activeTab] }}
-          </ElButton>
+          <div class="flex gap-8px">
+            <ElButtonGroup size="small">
+              <ElButton :type="viewMode === 'table' ? 'primary' : 'default'" @click="viewMode = 'table'">列表</ElButton>
+              <ElButton :type="viewMode === 'card' ? 'primary' : 'default'" @click="viewMode = 'card'">卡片</ElButton>
+            </ElButtonGroup>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)"
+              type="primary"
+              :disabled="!examStore.currentSubjectId"
+              @click="handleAdd"
+            >
+              新增{{ typeLabels[activeTab] }}
+            </ElButton>
+          </div>
         </div>
       </template>
-      <ElTable v-loading="loading" :data="materials" border stripe>
+      <ElTable v-if="viewMode === 'table'" v-loading="loading" :data="materials" border stripe>
         <ElTableColumn prop="id" label="ID" width="80" />
         <ElTableColumn prop="title" label="标题" min-width="200" />
         <ElTableColumn prop="summary" label="摘要" min-width="200" show-overflow-tooltip />
@@ -225,9 +249,32 @@ onMounted(() => {
             >
               删除
             </ElButton>
+            <ElButton type="info" link size="small" @click="handleViewDetail(row)">查看</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
+      <div v-if="viewMode === 'card'" class="grid grid-cols-1 gap-16px lg:grid-cols-3 sm:grid-cols-2">
+        <ElCard v-for="item in materials" :key="item.id" shadow="hover">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <ElText truncated class="font-medium">{{ item.title }}</ElText>
+              <ElTag size="small">{{ typeLabels[item.type] || item.type }}</ElTag>
+            </div>
+          </template>
+          <p class="mb-8px text-sm text-gray-500">{{ item.summary || '暂无摘要' }}</p>
+          <div class="mb-8px flex flex-wrap gap-4px">
+            <ElTag v-for="tag in item.tags || []" :key="tag" size="small">{{ tag }}</ElTag>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400">排序: {{ item.sort_order }}</span>
+            <div v-if="hasAuth(PERMISSION_CODES.MATERIAL_MANAGE)" class="flex gap-4px">
+              <ElButton type="primary" link size="small" @click="handleEdit(item)">编辑</ElButton>
+              <ElButton type="danger" link size="small" @click="handleDelete(item)">删除</ElButton>
+              <ElButton type="info" link size="small" @click="handleViewDetail(item)">查看</ElButton>
+            </div>
+          </div>
+        </ElCard>
+      </div>
       <div class="mt-16px flex justify-end">
         <ElPagination
           v-model:current-page="pagination.page"
@@ -246,7 +293,24 @@ onMounted(() => {
           <ElInput v-model="form.title" placeholder="资料标题" />
         </ElFormItem>
         <ElFormItem label="内容" prop="content">
-          <ElInput v-model="form.content" type="textarea" :rows="8" placeholder="资料内容（支持HTML）" />
+          <div class="w-full">
+            <div class="mb-8px">
+              <ElButton size="small" :type="contentPreview ? 'default' : 'primary'" @click="contentPreview = false">
+                编辑
+              </ElButton>
+              <ElButton size="small" :type="contentPreview ? 'primary' : 'default'" @click="contentPreview = true">
+                预览
+              </ElButton>
+            </div>
+            <ElInput
+              v-if="!contentPreview"
+              v-model="form.content"
+              type="textarea"
+              :rows="8"
+              placeholder="资料内容（支持HTML）"
+            />
+            <div v-else class="min-h-200px border rounded p-12px" v-html="form.content" />
+          </div>
         </ElFormItem>
         <ElFormItem label="摘要">
           <ElInput v-model="form.summary" type="textarea" :rows="2" placeholder="简要描述" />
@@ -269,6 +333,22 @@ onMounted(() => {
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="materialDetailVisible" title="资料详情" width="600px">
+      <template v-if="currentMaterialDetail">
+        <ElDescriptions :column="1" border class="mb-16px">
+          <ElDescriptionsItem label="ID">{{ currentMaterialDetail.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="标题">{{ currentMaterialDetail.title }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="类型">
+            {{ typeLabels[currentMaterialDetail.type] || currentMaterialDetail.type }}
+          </ElDescriptionsItem>
+          <ElDescriptionsItem label="科目">{{ currentMaterialDetail.subject_id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="摘要">{{ currentMaterialDetail.summary || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="排序">{{ currentMaterialDetail.sort_order }}</ElDescriptionsItem>
+        </ElDescriptions>
+        <div class="min-h-100px border rounded p-12px" v-html="currentMaterialDetail.content" />
       </template>
     </ElDialog>
   </div>

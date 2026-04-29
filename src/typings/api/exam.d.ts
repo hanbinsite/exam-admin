@@ -406,8 +406,10 @@ declare namespace Exam {
         code: string;
         name: string;
         is_super: boolean;
-      };
+      } | null;
       subjects: string[];
+      subject_ids?: string[];
+      is_active?: boolean;
     }
 
     interface RbacInitResult {

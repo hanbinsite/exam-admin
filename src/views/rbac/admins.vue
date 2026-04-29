@@ -4,10 +4,13 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
+  fetchActivateAdmin,
+  fetchAdminDetail,
   fetchAdminList,
   fetchAdminRegister,
   fetchAdminSubjects,
   fetchAssignSubjectAdmin,
+  fetchDeactivateAdmin,
   fetchRemoveSubjectAdmin,
   fetchRoleList,
   fetchSubjectList,
@@ -49,6 +52,8 @@ const subjectDialogVisible = ref(false);
 const subjectSubmitting = ref(false);
 const currentAdminId = ref('');
 const currentAdminSubjects = ref<string[]>([]);
+const detailDialogVisible = ref(false);
+const currentAdminDetail = ref<Exam.RBAC.AdminDetail | null>(null);
 
 async function loadData() {
   loading.value = true;
@@ -110,6 +115,40 @@ async function handleSubjectChange() {
   }
 }
 
+async function handleDeactivate(admin: Exam.RBAC.AdminDetail) {
+  await ElMessageBox.confirm(`确定停用管理员「${admin.name}」吗？`, '停用确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  });
+  const { error } = await fetchDeactivateAdmin(admin.id);
+  if (!error) {
+    ElMessage.success('已停用');
+    loadData();
+  }
+}
+
+async function handleActivate(admin: Exam.RBAC.AdminDetail) {
+  await ElMessageBox.confirm(`确定激活管理员「${admin.name}」吗？`, '激活确认', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  });
+  const { error } = await fetchActivateAdmin(admin.id);
+  if (!error) {
+    ElMessage.success('已激活');
+    loadData();
+  }
+}
+
+async function handleViewDetail(admin: Exam.RBAC.AdminDetail) {
+  const { data, error } = await fetchAdminDetail(admin.id);
+  if (!error && data) {
+    currentAdminDetail.value = data;
+    detailDialogVisible.value = true;
+  }
+}
+
 function handleRegister() {
   registerForm.name = '';
   registerForm.email = '';
@@ -168,7 +207,7 @@ onMounted(loadData);
             <ElTag>{{ row.subjects?.length || 0 }}</ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="120" align="center">
+        <ElTableColumn label="操作" width="240" align="center">
           <template #default="{ row }">
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
@@ -179,6 +218,25 @@ onMounted(loadData);
             >
               科目授权
             </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="warning"
+              link
+              size="small"
+              @click="handleDeactivate(row)"
+            >
+              停用
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="success"
+              link
+              size="small"
+              @click="handleActivate(row)"
+            >
+              激活
+            </ElButton>
+            <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -212,6 +270,24 @@ onMounted(loadData);
         <ElButton @click="subjectDialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="subjectSubmitting" @click="handleSubjectChange">提交</ElButton>
       </template>
+    </ElDialog>
+
+    <ElDialog v-model="detailDialogVisible" title="管理员详情" width="450px">
+      <ElDescriptions v-if="currentAdminDetail" :column="1" border>
+        <ElDescriptionsItem label="ID">{{ currentAdminDetail.id }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="姓名">{{ currentAdminDetail.name }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="邮箱">{{ currentAdminDetail.email }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="角色">
+          {{ currentAdminDetail.role?.name || '-' }}
+          <ElTag v-if="currentAdminDetail.role?.is_super" size="small" type="danger" class="ml-8px">超级管理员</ElTag>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="状态">
+          <ElTag :type="currentAdminDetail.is_active ? 'success' : 'danger'">
+            {{ currentAdminDetail.is_active ? '启用' : '停用' }}
+          </ElTag>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="授权科目数">{{ currentAdminDetail.subject_ids?.length || 0 }}</ElDescriptionsItem>
+      </ElDescriptions>
     </ElDialog>
   </div>
 </template>

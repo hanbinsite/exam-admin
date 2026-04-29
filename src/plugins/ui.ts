@@ -1,5 +1,5 @@
 import type { App } from 'vue';
-import ElementPlus, { ElCard, ElForm, ElTable } from 'element-plus';
+import ElementPlus, { ElCard, ElForm, ElMessage, ElMessageBox, ElNotification, ElTable } from 'element-plus';
 
 /** global table column align */
 ElTable.TableColumn.props.align = {
@@ -22,4 +22,8 @@ ElForm.props.requireAsteriskPosition = {
 /** full import ElementPlus */
 export const setupUI = (app: App) => {
   app.use(ElementPlus);
+
+  window.$message = ElMessage;
+  window.$messageBox = ElMessageBox;
+  window.$notification = ElNotification;
 };

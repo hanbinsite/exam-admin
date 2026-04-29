@@ -14,7 +14,7 @@ export function fetchSubjectById(subjectId: string) {
 
 export function fetchCreateSubject(data: Exam.Subject.SubjectCreateRequest) {
   return request<Exam.Subject.Subject>({
-    url: '/subjects',
+    url: '/admin/subjects',
     method: 'post',
     data
   });
@@ -22,7 +22,7 @@ export function fetchCreateSubject(data: Exam.Subject.SubjectCreateRequest) {
 
 export function fetchUpdateSubject(subjectId: string, data: Exam.Subject.SubjectUpdateRequest) {
   return request<Exam.Subject.Subject>({
-    url: `/subjects/${subjectId}`,
+    url: `/admin/subjects/${subjectId}`,
     method: 'put',
     data
   });
@@ -30,7 +30,7 @@ export function fetchUpdateSubject(subjectId: string, data: Exam.Subject.Subject
 
 export function fetchDeleteSubject(subjectId: string) {
   return request<null>({
-    url: `/subjects/${subjectId}`,
+    url: `/admin/subjects/${subjectId}`,
     method: 'delete'
   });
 }

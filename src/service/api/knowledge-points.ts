@@ -6,6 +6,12 @@ export function fetchKnowledgePointTree(subjectId: string) {
   });
 }
 
+export function fetchKnowledgePointDetail(kpId: number) {
+  return request<Exam.KnowledgePoint.KnowledgePoint>({
+    url: `/admin/knowledge-points/${kpId}`
+  });
+}
+
 export function fetchCreateKnowledgePoint(data: Exam.KnowledgePoint.KnowledgePointCreateRequest) {
   return request<Exam.KnowledgePoint.KnowledgePoint>({
     url: '/admin/knowledge-points',

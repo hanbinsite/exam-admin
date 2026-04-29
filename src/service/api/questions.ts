@@ -43,6 +43,12 @@ export function fetchDeleteQuestion(questionId: number) {
   });
 }
 
+export function fetchQuestionDetail(questionId: number) {
+  return request<Exam.Question.Question>({
+    url: `/questions/${questionId}`
+  });
+}
+
 export function fetchBatchImportQuestions(questions: Exam.Question.QuestionCreateRequest[]) {
   return request<Exam.Question.BatchImportResult>({
     url: '/admin/questions/batch',

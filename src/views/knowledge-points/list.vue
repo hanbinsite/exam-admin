@@ -6,6 +6,7 @@ import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchCreateKnowledgePoint,
   fetchDeleteKnowledgePoint,
+  fetchKnowledgePointDetail,
   fetchKnowledgePointTree,
   fetchUpdateKnowledgePoint
 } from '@/service/api';
@@ -33,6 +34,8 @@ const form = reactive({
 });
 
 const editingId = ref<number | null>(null);
+const kpDetailVisible = ref(false);
+const currentKPDetail = ref<Exam.KnowledgePoint.KnowledgePoint | null>(null);
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入知识点名称', trigger: 'blur' }]
@@ -124,6 +127,14 @@ async function handleDelete(row: Exam.KnowledgePoint.KnowledgePoint) {
   }
 }
 
+async function handleViewDetail(row: Exam.KnowledgePoint.KnowledgePoint) {
+  const { data, error } = await fetchKnowledgePointDetail(row.id);
+  if (!error && data) {
+    currentKPDetail.value = data;
+    kpDetailVisible.value = true;
+  }
+}
+
 function flattenKP(
   kpList: Exam.KnowledgePoint.KnowledgePoint[],
   excludeId?: number | null
@@ -187,7 +198,7 @@ onMounted(() => {
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="220" align="center">
+        <ElTableColumn label="操作" width="280" align="center">
           <template #default="{ row }">
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
@@ -216,6 +227,7 @@ onMounted(() => {
             >
               删除
             </ElButton>
+            <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
           </template>
         </ElTableColumn>
       </ElTable>
@@ -249,6 +261,24 @@ onMounted(() => {
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="kpDetailVisible" title="知识点详情" width="450px">
+      <template v-if="currentKPDetail">
+        <ElDescriptions :column="1" border>
+          <ElDescriptionsItem label="ID">{{ currentKPDetail.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="名称">{{ currentKPDetail.name }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="描述">{{ currentKPDetail.description || '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="科目">{{ currentKPDetail.subject_id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="父节点ID">{{ currentKPDetail.parent_id ?? '-' }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="排序">{{ currentKPDetail.sort_order }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="状态">
+            <ElTag :type="currentKPDetail.is_active ? 'success' : 'info'">
+              {{ currentKPDetail.is_active ? '启用' : '禁用' }}
+            </ElTag>
+          </ElDescriptionsItem>
+        </ElDescriptions>
       </template>
     </ElDialog>
   </div>

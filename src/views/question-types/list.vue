@@ -23,6 +23,49 @@ const dialogTitle = ref('新增题型');
 const submitting = ref(false);
 const formRef = ref<FormInstance>();
 
+const PRESET_TYPES = [
+  {
+    name: 'choice',
+    display_name: '单选题',
+    has_options: true,
+    has_sub_questions: false,
+    scoring_type: 'auto',
+    default_score: 1
+  },
+  {
+    name: 'multi_choice',
+    display_name: '多选题',
+    has_options: true,
+    has_sub_questions: false,
+    scoring_type: 'auto',
+    default_score: 2
+  },
+  {
+    name: 'judgment',
+    display_name: '判断题',
+    has_options: false,
+    has_sub_questions: false,
+    scoring_type: 'auto',
+    default_score: 1
+  },
+  {
+    name: 'fill_blank',
+    display_name: '填空题',
+    has_options: false,
+    has_sub_questions: false,
+    scoring_type: 'auto',
+    default_score: 1
+  },
+  {
+    name: 'material',
+    display_name: '材料题',
+    has_options: false,
+    has_sub_questions: true,
+    scoring_type: 'mixed',
+    default_score: 10
+  }
+] as const;
+
 const form = reactive({
   subject_id: '',
   name: '',
@@ -134,6 +177,28 @@ async function handleDelete(row: Exam.QuestionType.QuestionType) {
   }
 }
 
+const initializingTypes = ref(false);
+
+async function handleInitPresets() {
+  await ElMessageBox.confirm(
+    '将为当前科目创建5种预设题型（单选/多选/判断/填空/材料），已有同名题型将被跳过',
+    '初始化预设题型',
+    { type: 'info' }
+  );
+  initializingTypes.value = true;
+  const results = await Promise.all(
+    PRESET_TYPES.map(async preset => {
+      const exists = questionTypes.value.some(t => t.name === preset.name);
+      if (exists) return null;
+      return fetchCreateQuestionType({ subject_id: examStore.currentSubjectId, ...preset });
+    })
+  );
+  const created = results.filter(Boolean).length;
+  ElMessage.success(`预设题型初始化完成，创建了 ${created} 个题型`);
+  initializingTypes.value = false;
+  loadQuestionTypes();
+}
+
 onMounted(() => {
   if (examStore.subjects.length === 0) {
     examStore.loadSubjects();
@@ -152,15 +217,24 @@ onMounted(() => {
         <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
           <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
         </ElSelect>
-        <ElButton
-          v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
-          type="primary"
-          class="ml-auto"
-          :disabled="!examStore.currentSubjectId"
-          @click="handleAdd"
-        >
-          新增题型
-        </ElButton>
+        <div class="ml-auto flex gap-8px">
+          <ElButton
+            v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
+            :loading="initializingTypes"
+            :disabled="!examStore.currentSubjectId"
+            @click="handleInitPresets"
+          >
+            初始化预设
+          </ElButton>
+          <ElButton
+            v-if="hasAuth(PERMISSION_CODES.QUESTION_TYPE_MANAGE)"
+            type="primary"
+            :disabled="!examStore.currentSubjectId"
+            @click="handleAdd"
+          >
+            新增题型
+          </ElButton>
+        </div>
       </div>
       <ElTable v-loading="loading" :data="questionTypes" border stripe>
         <ElTableColumn prop="id" label="ID" width="80" />
