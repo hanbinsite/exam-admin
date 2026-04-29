@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
@@ -24,6 +24,15 @@ const { hasAuth } = useAuth();
 const roles = ref<Exam.RBAC.Role[]>([]);
 const permissions = ref<Exam.RBAC.Permission[]>([]);
 const menus = ref<Exam.RBAC.Menu[]>([]);
+const menuTreeData = computed(() => {
+  const transform = (list: Exam.RBAC.Menu[]): any[] =>
+    list.map(m => ({
+      id: m.id,
+      title: m.meta.title,
+      children: m.children ? transform(m.children) : []
+    }));
+  return transform(menus.value);
+});
 const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增角色');
@@ -282,11 +291,11 @@ onMounted(loadRoles);
     </ElDialog>
     <ElDialog v-model="menuDialogVisible" title="分配菜单" width="500px">
       <ElTree
-        :data="menus"
+        :data="menuTreeData"
         show-checkbox
         node-key="id"
         :default-checked-keys="checkedMenuIds"
-        :props="{ label: 'meta.title', children: 'children' }"
+        :props="{ label: 'title', children: 'children' }"
         @check="
           (_node: any, checked: { checkedKeys: number[] }) => {
             checkedMenuIds = checked.checkedKeys;
