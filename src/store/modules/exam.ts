@@ -21,9 +21,9 @@ export const useExamStore = defineStore(SetupStoreId.Exam, () => {
     loading.value = true;
     const { data, error } = await fetchSubjectList();
     if (!error && data) {
-      subjects.value = data;
-      if (!currentSubjectId.value && data.length > 0) {
-        currentSubjectId.value = data[0].id;
+      subjects.value = data.items;
+      if (!currentSubjectId.value && data.items.length > 0) {
+        currentSubjectId.value = data.items[0].id;
       }
     }
     loading.value = false;

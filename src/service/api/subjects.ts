@@ -1,7 +1,7 @@
 import { request } from '../request';
 
 export function fetchSubjectList() {
-  return request<Exam.Subject.Subject[]>({
+  return request<Exam.Subject.SubjectListData>({
     url: '/subjects'
   });
 }

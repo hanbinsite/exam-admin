@@ -60,7 +60,7 @@ async function loadData() {
   const [adminsRes, rolesRes, subjectsRes] = await Promise.all([fetchAdminList(), fetchRoleList(), fetchSubjectList()]);
   if (!adminsRes.error && adminsRes.data) admins.value = adminsRes.data;
   if (!rolesRes.error && rolesRes.data) roles.value = rolesRes.data;
-  if (!subjectsRes.error && subjectsRes.data) subjects.value = subjectsRes.data;
+  if (!subjectsRes.error && subjectsRes.data) subjects.value = subjectsRes.data.items;
   loading.value = false;
 }
 

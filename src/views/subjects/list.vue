@@ -46,7 +46,7 @@ async function loadSubjects() {
   loading.value = true;
   const { data, error } = await fetchSubjectList();
   if (!error && data) {
-    subjects.value = data;
+    subjects.value = data.items;
   }
   loading.value = false;
 }

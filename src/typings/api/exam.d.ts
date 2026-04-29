@@ -105,6 +105,13 @@ declare namespace Exam {
       icon?: string;
       is_active?: boolean;
     }
+
+    interface SubjectListData {
+      items: Subject[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
   }
 
   namespace QuestionType {

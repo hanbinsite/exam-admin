@@ -23,7 +23,7 @@ async function loadDashboard() {
     overview.value = overviewRes.data;
   }
   if (!subjectsRes.error && subjectsRes.data) {
-    subjects.value = subjectsRes.data;
+    subjects.value = subjectsRes.data.items;
   }
   loading.value = false;
 }
