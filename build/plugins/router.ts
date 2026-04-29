@@ -57,6 +57,10 @@ export function setupElegantRouter() {
         return `/login/:module(${moduleReg})?`;
       }
 
+      if (key === 'exams_sessions') {
+        return '/exams/sessions/:examId';
+      }
+
       return routePath;
     },
     onRouteMetaGen(routeName) {

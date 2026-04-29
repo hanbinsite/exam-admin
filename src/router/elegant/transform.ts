@@ -189,7 +189,7 @@ const routeMap: RouteMap = {
   "materials_list": "/materials/list",
   "exams": "/exams",
   "exams_list": "/exams/list",
-  "exams_sessions": "/exams/sessions",
+  "exams_sessions": "/exams/sessions/:examId",
   "scores": "/scores",
   "scores_list": "/scores/list",
   "users": "/users",
