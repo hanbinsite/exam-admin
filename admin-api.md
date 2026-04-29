@@ -459,7 +459,52 @@
 
 ## 6. 用户管理
 
-### 6.1 分页获取用户列表
+### 6.1 后台新增用户
+
+- **方法**: `POST`
+- **路径**: `/admin/users`
+- **认证**: 需 Admin JWT
+- **权限**: `admin:manage`
+
+**请求体**
+
+```json
+{
+  "name": "张三",
+  "email": "zhangsan@example.com",
+  "password": "UserPass123",
+  "phone": "13800138000"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | 是 | 最长 100 字符 |
+| email | string | 是 | 邮箱，需唯一 |
+| password | string | 是 | 6~20 位，需通过密码强度校验（含字母+数字） |
+| phone | string | 否 | 最长 20 字符 |
+
+**成功响应**
+
+```json
+{
+  "code": 200,
+  "data": {
+    "id": "abc123",
+    "name": "张三",
+    "email": "zhangsan@example.com",
+    "phone": "13800138000",
+    "is_active": true
+  },
+  "message": "user created"
+}
+```
+
+**常见失败**
+- 403：无 `admin:manage` 权限
+- 409：`Email already registered`
+
+### 6.2 分页获取用户列表
 
 - **方法**: `GET`
 - **路径**: `/admin/users`
@@ -499,7 +544,7 @@
 }
 ```
 
-### 6.2 查看用户详情
+### 6.3 查看用户详情
 
 - **方法**: `GET`
 - **路径**: `/admin/users/{user_id}`
@@ -531,7 +576,7 @@
 }
 ```
 
-### 6.3 激活用户
+### 6.4 激活用户
 
 - **方法**: `PUT`
 - **路径**: `/admin/users/{user_id}/activate`
@@ -551,7 +596,7 @@
 }
 ```
 
-### 6.4 重置用户密码
+### 6.5 重置用户密码
 
 - **方法**: `PUT`
 - **路径**: `/admin/users/{user_id}/reset-password`
@@ -582,7 +627,7 @@
 }
 ```
 
-### 6.5 停用用户
+### 6.6 停用用户
 
 - **方法**: `DELETE`
 - **路径**: `/admin/users/{user_id}`
@@ -602,7 +647,7 @@
 }
 ```
 
-### 6.6 分配 / 重置用户查询码
+### 6.7 分配 / 重置用户查询码
 
 - **方法**: `PUT`
 - **路径**: `/admin/users/{user_id}/assign-code`
@@ -945,49 +990,28 @@
 
 ## 10. 学习资料管理
 
-### 10.1 资料列表
+### 10.1 用户侧资料列表
 
 - **方法**: `GET`
 - **路径**: `/subjects/{subject_id}/materials`
-- **认证**: 需 User JWT 或 Admin JWT
-- **权限**: 用户侧需用户科目访问权限；管理员直接可访问
+- **认证**: 需 User JWT
+- **权限**: 用户科目访问权限
 
-**查询参数**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| type | string | 否 | 资料类型过滤 |
-| page | int | 否 | 默认 1 |
-| pageSize | int | 否 | 默认 20，最大 100 |
-
-### 10.2 获取资料详情
-
-- **方法**: `GET`
-- **路径**: `/materials/{material_id}`
-- **认证**: 需 User JWT 或 Admin JWT
-- **权限**: 管理员直接可访问；用户侧按用户科目访问权限检查
-
-**路径参数**
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| material_id | int | 是 | 资料 ID |
-
-### 10.3 创建资料
+### 10.2 创建资料
 
 - **方法**: `POST`
 - **路径**: `/admin/materials`
 - **认证**: 需 Admin JWT
 - **权限**: `material:manage` + 科目授权
 
-### 10.4 更新资料
+### 10.3 更新资料
 
 - **方法**: `PUT`
 - **路径**: `/admin/materials/{material_id}`
 - **认证**: 需 Admin JWT
 - **权限**: `material:manage` + 资料所属科目授权
 
-### 10.5 删除资料
+### 10.4 删除资料
 
 - **方法**: `DELETE`
 - **路径**: `/admin/materials/{material_id}`
@@ -1253,17 +1277,17 @@
 
 #### 角色管理
 
-| 方法 | 路径 | 认证 | 权限 | 说明 |
-|------|------|------|------|------|
-| GET | `/admin/rbac/roles` | Admin JWT | 无 | 可选查询参数 `includeInactive`（boolean），默认 `false`，为 `true` 时同时返回停用角色 |
-| GET | `/admin/rbac/roles/{role_id}` | Admin JWT | 无 | |
-| POST | `/admin/rbac/roles` | Admin JWT | `admin:manage` | |
-| PUT | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` | |
-| DELETE | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` | |
-| GET | `/admin/rbac/roles/{role_code}/permissions` | Admin JWT | 无 | |
-| POST | `/admin/rbac/roles/permissions` | Admin JWT | `admin:manage` | |
-| GET | `/admin/rbac/roles/{role_code}/menus` | Admin JWT | 无 | |
-| POST | `/admin/rbac/roles/menus` | Admin JWT | `admin:manage` | |
+| 方法 | 路径 | 认证 | 权限 |
+|------|------|------|------|
+| GET | `/admin/rbac/roles` | Admin JWT | 无 |
+| GET | `/admin/rbac/roles/{role_id}` | Admin JWT | 无 |
+| POST | `/admin/rbac/roles` | Admin JWT | `admin:manage` |
+| PUT | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` |
+| DELETE | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` |
+| GET | `/admin/rbac/roles/{role_code}/permissions` | Admin JWT | 无 |
+| POST | `/admin/rbac/roles/permissions` | Admin JWT | `admin:manage` |
+| GET | `/admin/rbac/roles/{role_code}/menus` | Admin JWT | 无 |
+| POST | `/admin/rbac/roles/menus` | Admin JWT | `admin:manage` |
 
 #### 菜单管理
 
@@ -1276,22 +1300,22 @@
 
 #### 管理员与授权关系
 
-| 方法 | 路径 | 认证 | 权限 | 说明 |
-|------|------|------|------|------|
-| GET | `/admin/rbac/admins` | Admin JWT | 无 | |
-| GET | `/admin/rbac/admins/{admin_id}` | Admin JWT | 无 | |
-| PUT | `/admin/rbac/admins/{admin_id}/role` | Admin JWT | `admin:manage` | |
-| GET | `/admin/rbac/admins/{admin_id}/menus` | Admin JWT | 无 | |
-| GET | `/admin/rbac/admins/{admin_id}/subjects` | Admin JWT | 无 | |
-| PUT | `/admin/rbac/admins/{admin_id}/deactivate` | Admin JWT | `admin:manage` | |
-| PUT | `/admin/rbac/admins/{admin_id}/activate` | Admin JWT | `admin:manage` | |
-| POST | `/admin/rbac/subject-admins` | Admin JWT | `admin:manage` | |
-| DELETE | `/admin/rbac/subject-admins` | Admin JWT | `admin:manage` | Query 参数：`adminId`（string，必填）+ `subjectId`（string，必填） |
-| POST | `/admin/rbac/user-subjects` | Admin JWT | `admin:manage` | |
-| DELETE | `/admin/rbac/user-subjects` | Admin JWT | `admin:manage` | Query 参数：`userId`（string，必填）+ `subjectId`（string，必填） |
-| GET | `/admin/rbac/user-subjects/{user_id}` | Admin JWT | 无 | |
-| GET | `/admin/rbac/user-subjects/subject/{subject_id}` | Admin JWT | 无 | |
-| POST | `/admin/rbac/init` | Admin JWT | `admin:manage` | |
+| 方法 | 路径 | 认证 | 权限 |
+|------|------|------|------|
+| GET | `/admin/rbac/admins` | Admin JWT | 无 |
+| GET | `/admin/rbac/admins/{admin_id}` | Admin JWT | 无 |
+| PUT | `/admin/rbac/admins/{admin_id}/role` | Admin JWT | `admin:manage` |
+| GET | `/admin/rbac/admins/{admin_id}/menus` | Admin JWT | 无 |
+| GET | `/admin/rbac/admins/{admin_id}/subjects` | Admin JWT | 无 |
+| PUT | `/admin/rbac/admins/{admin_id}/deactivate` | Admin JWT | `admin:manage` |
+| PUT | `/admin/rbac/admins/{admin_id}/activate` | Admin JWT | `admin:manage` |
+| POST | `/admin/rbac/subject-admins` | Admin JWT | `admin:manage` |
+| DELETE | `/admin/rbac/subject-admins` | Admin JWT | `admin:manage` |
+| POST | `/admin/rbac/user-subjects` | Admin JWT | `admin:manage` |
+| DELETE | `/admin/rbac/user-subjects` | Admin JWT | `admin:manage` |
+| GET | `/admin/rbac/user-subjects/{user_id}` | Admin JWT | 无 |
+| GET | `/admin/rbac/user-subjects/subject/{subject_id}` | Admin JWT | 无 |
+| POST | `/admin/rbac/init` | Admin JWT | `admin:manage` |
 
 ### 14.8 RBAC 常见失败示例
 
@@ -1393,42 +1417,32 @@
 | 管理员认证 | GET | `/admin/auth/permissions` |
 | 管理员认证 | POST | `/admin/auth/logout` |
 | 仪表盘 | GET | `/admin/dashboard` |
+| 用户管理 | POST | `/admin/users` |
 | 用户管理 | GET | `/admin/users` |
 | 用户管理 | GET | `/admin/users/{user_id}` |
 | 用户管理 | PUT | `/admin/users/{user_id}/activate` |
 | 用户管理 | PUT | `/admin/users/{user_id}/reset-password` |
 | 用户管理 | DELETE | `/admin/users/{user_id}` |
 | 用户管理 | PUT | `/admin/users/{user_id}/assign-code` |
-| 科目管理 | GET | `/subjects` |
-| 科目管理 | GET | `/subjects/{subject_id}` |
 | 科目管理 | POST | `/admin/subjects` |
 | 科目管理 | PUT | `/admin/subjects/{subject_id}` |
 | 科目管理 | DELETE | `/admin/subjects/{subject_id}` |
-| 题型管理 | GET | `/subjects/{subject_id}/question-types` |
 | 题型管理 | POST | `/admin/question-types` |
 | 题型管理 | PUT | `/admin/question-types/{type_id}` |
 | 题型管理 | DELETE | `/admin/question-types/{type_id}` |
-| 题目管理 | GET | `/subjects/{subject_id}/questions` |
-| 题目管理 | GET | `/subjects/{subject_id}/questions/stats` |
-| 题目管理 | GET | `/questions/{question_id}` |
 | 题目管理 | GET | `/admin/subjects/{subject_id}/questions` |
 | 题目管理 | POST | `/admin/questions` |
 | 题目管理 | PUT | `/admin/questions/{question_id}` |
 | 题目管理 | DELETE | `/admin/questions/{question_id}` |
 | 题目管理 | POST | `/admin/questions/batch` |
-| 资料管理 | GET | `/subjects/{subject_id}/materials` |
-| 资料管理 | GET | `/materials/{material_id}` |
 | 资料管理 | POST | `/admin/materials` |
 | 资料管理 | PUT | `/admin/materials/{material_id}` |
 | 资料管理 | DELETE | `/admin/materials/{material_id}` |
-| 考试配置 | GET | `/subjects/{subject_id}/exams` |
-| 考试配置 | GET | `/exams/{exam_id}` |
 | 考试配置 | POST | `/admin/exams` |
 | 考试配置 | PUT | `/admin/exams/{exam_id}` |
 | 考试配置 | DELETE | `/admin/exams/{exam_id}` |
 | 考试会话 | GET | `/admin/exams/{exam_id}/sessions` |
 | 考试会话 | GET | `/admin/exams/sessions/{session_id}` |
-| 考试会话 | GET | `/exams/session/{session_id}` |
 | 成绩统计 | GET | `/admin/scores/stats` |
 | 成绩统计 | GET | `/admin/scores/list` |
 | RBAC | 全部 | `/admin/rbac/*` |

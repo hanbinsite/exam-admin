@@ -4,11 +4,14 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
+  fetchAssignRoleMenus,
   fetchAssignRolePermissions,
   fetchCreateRole,
   fetchDeleteRole,
+  fetchMenuList,
   fetchPermissionList,
   fetchRoleList,
+  fetchRoleMenus,
   fetchRolePermissions,
   fetchUpdateRole
 } from '@/service/api';
@@ -20,6 +23,7 @@ const { hasAuth } = useAuth();
 
 const roles = ref<Exam.RBAC.Role[]>([]);
 const permissions = ref<Exam.RBAC.Permission[]>([]);
+const menus = ref<Exam.RBAC.Menu[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增角色');
@@ -38,6 +42,10 @@ const form = reactive({
 const editingId = ref<number | null>(null);
 const currentRoleCode = ref('');
 const checkedPermissions = ref<string[]>([]);
+const menuDialogVisible = ref(false);
+const menuSubmitting = ref(false);
+const checkedMenuIds = ref<number[]>([]);
+const currentRoleCodeForMenu = ref('');
 
 const rules: FormRules = {
   code: [{ required: true, message: '请输入角色标识', trigger: 'blur' }],
@@ -46,9 +54,14 @@ const rules: FormRules = {
 
 async function loadRoles() {
   loading.value = true;
-  const [rolesRes, permsRes] = await Promise.all([fetchRoleList(true), fetchPermissionList()]);
+  const [rolesRes, permsRes, menusRes] = await Promise.all([
+    fetchRoleList(true),
+    fetchPermissionList(),
+    fetchMenuList()
+  ]);
   if (!rolesRes.error && rolesRes.data) roles.value = rolesRes.data;
   if (!permsRes.error && permsRes.data) permissions.value = permsRes.data;
+  if (!menusRes.error && menusRes.data) menus.value = menusRes.data;
   loading.value = false;
 }
 
@@ -141,6 +154,30 @@ async function handlePermSubmit() {
   }
 }
 
+async function handleMenuAssign(row: Exam.RBAC.Role) {
+  currentRoleCodeForMenu.value = row.code;
+  const { data, error } = await fetchRoleMenus(row.code);
+  if (!error && data) {
+    checkedMenuIds.value = data.map(m => m.id);
+  } else {
+    checkedMenuIds.value = [];
+  }
+  menuDialogVisible.value = true;
+}
+
+async function handleMenuSubmit() {
+  menuSubmitting.value = true;
+  try {
+    const { error } = await fetchAssignRoleMenus(currentRoleCodeForMenu.value, checkedMenuIds.value);
+    if (!error) {
+      ElMessage.success('菜单分配成功');
+      menuDialogVisible.value = false;
+    }
+  } finally {
+    menuSubmitting.value = false;
+  }
+}
+
 onMounted(loadRoles);
 </script>
 
@@ -168,7 +205,7 @@ onMounted(loadRoles);
             <ElTag :type="row.is_active ? 'success' : 'warning'">{{ row.is_active ? '是' : '否' }}</ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn label="操作" width="250" align="center">
+        <ElTableColumn label="操作" width="310" align="center">
           <template #default="{ row }">
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
@@ -187,6 +224,15 @@ onMounted(loadRoles);
               @click="handlePermissionAssign(row)"
             >
               权限
+            </ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="success"
+              link
+              size="small"
+              @click="handleMenuAssign(row)"
+            >
+              菜单
             </ElButton>
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
@@ -232,6 +278,24 @@ onMounted(loadRoles);
       <template #footer>
         <ElButton @click="permDialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="permSubmitting" @click="handlePermSubmit">提交</ElButton>
+      </template>
+    </ElDialog>
+    <ElDialog v-model="menuDialogVisible" title="分配菜单" width="500px">
+      <ElTree
+        :data="menus"
+        show-checkbox
+        node-key="id"
+        :default-checked-keys="checkedMenuIds"
+        :props="{ label: 'name', children: 'children' }"
+        @check="
+          (_node: any, checked: { checkedKeys: number[] }) => {
+            checkedMenuIds = checked.checkedKeys;
+          }
+        "
+      />
+      <template #footer>
+        <ElButton @click="menuDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="menuSubmitting" @click="handleMenuSubmit">提交</ElButton>
       </template>
     </ElDialog>
   </div>

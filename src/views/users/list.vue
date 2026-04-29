@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchActivateUser,
   fetchAssignUserCode,
+  fetchCreateUser,
   fetchDeleteUser,
   fetchResetUserPassword,
   fetchUserList
@@ -29,6 +31,29 @@ const newPassword = ref('');
 const assignCodeDialogVisible = ref(false);
 const assignCodeSubmitting = ref(false);
 const assignCodeInput = ref('');
+
+const createDialogVisible = ref(false);
+const createSubmitting = ref(false);
+const createFormRef = ref<FormInstance>();
+
+const createForm = reactive({
+  name: '',
+  email: '',
+  password: '',
+  phone: ''
+});
+
+const createRules: FormRules = {
+  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度为6-20位', trigger: 'blur' }
+  ]
+};
 
 async function loadUsers() {
   loading.value = true;
@@ -126,6 +151,36 @@ async function handleAssignCodeSubmit() {
   }
 }
 
+function handleCreateOpen() {
+  createForm.name = '';
+  createForm.email = '';
+  createForm.password = '';
+  createForm.phone = '';
+  createFormRef.value?.resetFields();
+  createDialogVisible.value = true;
+}
+
+async function handleCreateSubmit() {
+  const valid = await createFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
+  createSubmitting.value = true;
+  try {
+    const { error } = await fetchCreateUser({
+      name: createForm.name,
+      email: createForm.email,
+      password: createForm.password,
+      phone: createForm.phone || undefined
+    });
+    if (!error) {
+      ElMessage.success('用户创建成功');
+      createDialogVisible.value = false;
+      loadUsers();
+    }
+  } finally {
+    createSubmitting.value = false;
+  }
+}
+
 onMounted(loadUsers);
 </script>
 
@@ -145,6 +200,9 @@ onMounted(loadUsers);
               @keyup.enter="handleSearch"
             />
             <ElButton type="primary" @click="handleSearch">搜索</ElButton>
+            <ElButton v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)" type="success" @click="handleCreateOpen">
+              新增用户
+            </ElButton>
           </div>
         </div>
       </template>
@@ -244,6 +302,26 @@ onMounted(loadUsers);
       <template #footer>
         <ElButton @click="assignCodeDialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="assignCodeSubmitting" @click="handleAssignCodeSubmit">确认分配</ElButton>
+      </template>
+    </ElDialog>
+    <ElDialog v-model="createDialogVisible" title="新增用户" width="450px">
+      <ElForm ref="createFormRef" :model="createForm" :rules="createRules" label-width="80px">
+        <ElFormItem label="姓名" prop="name">
+          <ElInput v-model="createForm.name" placeholder="请输入姓名" maxlength="100" />
+        </ElFormItem>
+        <ElFormItem label="邮箱" prop="email">
+          <ElInput v-model="createForm.email" placeholder="请输入邮箱" maxlength="200" />
+        </ElFormItem>
+        <ElFormItem label="密码" prop="password">
+          <ElInput v-model="createForm.password" type="password" show-password placeholder="6-20位，含字母和数字" />
+        </ElFormItem>
+        <ElFormItem label="手机号">
+          <ElInput v-model="createForm.phone" placeholder="请输入手机号（选填）" maxlength="20" />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="createDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="createSubmitting" @click="handleCreateSubmit">确认创建</ElButton>
       </template>
     </ElDialog>
   </div>

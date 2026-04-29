@@ -57,7 +57,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
   },
   watermark: {
     visible: false,
-    text: 'SoybeanAdmin',
+    text: 'Bin-Exam Admin',
     enableUserName: false
   },
   tokens: {

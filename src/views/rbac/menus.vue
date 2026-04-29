@@ -3,16 +3,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
-import {
-  fetchAssignRoleMenus,
-  fetchCreateMenu,
-  fetchDeleteMenu,
-  fetchMenuList,
-  fetchRbacInit,
-  fetchRoleList,
-  fetchRoleMenus,
-  fetchUpdateMenu
-} from '@/service/api';
+import { fetchCreateMenu, fetchDeleteMenu, fetchMenuList, fetchRbacInit, fetchUpdateMenu } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'RbacMenus' });
@@ -20,15 +11,10 @@ defineOptions({ name: 'RbacMenus' });
 const { hasAuth } = useAuth();
 
 const menus = ref<Exam.RBAC.Menu[]>([]);
-const roles = ref<Exam.RBAC.Role[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增菜单');
 const submitting = ref(false);
-const assignDialogVisible = ref(false);
-const assignSubmitting = ref(false);
-const currentRoleCode = ref('');
-const selectedMenuIds = ref<number[]>([]);
 const formRef = ref<FormInstance>();
 
 const form = reactive({
@@ -72,9 +58,8 @@ function resetForm() {
 
 async function loadData() {
   loading.value = true;
-  const [menusRes, rolesRes] = await Promise.all([fetchMenuList(), fetchRoleList()]);
-  if (!menusRes.error && menusRes.data) menus.value = menusRes.data;
-  if (!rolesRes.error && rolesRes.data) roles.value = rolesRes.data;
+  const { data, error } = await fetchMenuList();
+  if (!error && data) menus.value = data;
   loading.value = false;
 }
 
@@ -151,30 +136,6 @@ async function handleDelete(row: Exam.RBAC.Menu) {
   if (!error) {
     ElMessage.success('删除成功');
     loadData();
-  }
-}
-
-async function handleAssignDialog(role: Exam.RBAC.Role) {
-  currentRoleCode.value = role.code;
-  const { data, error } = await fetchRoleMenus(role.code);
-  if (!error && data) {
-    selectedMenuIds.value = data.map(m => m.id);
-  } else {
-    selectedMenuIds.value = [];
-  }
-  assignDialogVisible.value = true;
-}
-
-async function handleAssignSubmit() {
-  assignSubmitting.value = true;
-  try {
-    const { error } = await fetchAssignRoleMenus(currentRoleCode.value, selectedMenuIds.value);
-    if (!error) {
-      ElMessage.success('菜单分配成功');
-      assignDialogVisible.value = false;
-    }
-  } finally {
-    assignSubmitting.value = false;
   }
 }
 
@@ -258,38 +219,6 @@ onMounted(loadData);
       </ElTable>
     </ElCard>
 
-    <ElCard>
-      <template #header>
-        <div class="flex items-center justify-between">
-          <p>角色菜单分配</p>
-        </div>
-      </template>
-      <ElTable :data="roles" border stripe>
-        <ElTableColumn prop="code" label="角色代码" width="150" />
-        <ElTableColumn prop="name" label="角色名称" min-width="150" />
-        <ElTableColumn label="超级角色" width="100" align="center">
-          <template #default="{ row }">
-            <ElTag v-if="row.is_super" type="success">是</ElTag>
-            <ElTag v-else type="info">否</ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="操作" width="150" align="center">
-          <template #default="{ row }">
-            <ElButton
-              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
-              type="primary"
-              link
-              size="small"
-              :disabled="row.is_super"
-              @click="handleAssignDialog(row)"
-            >
-              分配菜单
-            </ElButton>
-          </template>
-        </ElTableColumn>
-      </ElTable>
-    </ElCard>
-
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
       <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
         <ElFormItem label="父菜单">
@@ -339,25 +268,6 @@ onMounted(loadData);
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
-      </template>
-    </ElDialog>
-
-    <ElDialog v-model="assignDialogVisible" title="分配菜单" width="500px">
-      <ElTree
-        :data="menus"
-        show-checkbox
-        node-key="id"
-        :default-checked-keys="selectedMenuIds"
-        :props="{ label: 'name', children: 'children' }"
-        @check="
-          (_node: any, checked: { checkedKeys: number[] }) => {
-            selectedMenuIds = checked.checkedKeys;
-          }
-        "
-      />
-      <template #footer>
-        <ElButton @click="assignDialogVisible = false">取消</ElButton>
-        <ElButton type="primary" :loading="assignSubmitting" @click="handleAssignSubmit">提交</ElButton>
       </template>
     </ElDialog>
   </div>

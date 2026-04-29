@@ -1,5 +1,13 @@
 import { request } from '../request';
 
+export function fetchCreateUser(data: { name: string; email: string; password: string; phone?: string }) {
+  return request<Exam.User.User>({
+    url: '/admin/users',
+    method: 'post',
+    data
+  });
+}
+
 export function fetchUserList(page: number = 1, pageSize: number = 20, keyword?: string) {
   return request<Exam.User.UserListData>({
     url: '/admin/users',
