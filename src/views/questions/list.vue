@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import * as echarts from 'echarts';
@@ -22,6 +22,13 @@ defineOptions({ name: 'QuestionList' });
 const examStore = useExamStore();
 const { hasAuth } = useAuth();
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
+const typeNameMap = computed(() => {
+  const map: Record<string, string> = {};
+  questionTypes.value.forEach(t => {
+    map[t.name] = t.display_name;
+  });
+  return map;
+});
 const stats = ref<Exam.Question.QuestionStats | null>(null);
 const loading = ref(false);
 const dialogVisible = ref(false);
@@ -423,7 +430,7 @@ onMounted(() => {
     <ElRow v-if="stats" :gutter="16">
       <ElCol v-for="(count, key) in stats.by_type" :key="key" :sm="8" :xs="24">
         <ElCard shadow="hover" class="mb-16px">
-          <ElStatistic :title="key" :value="count" />
+          <ElStatistic :title="typeNameMap[key] || key" :value="count" />
         </ElCard>
       </ElCol>
     </ElRow>
@@ -434,9 +441,12 @@ onMounted(() => {
           <ElStatistic :title="(difficultyMap[key] || { label: key }).label" :value="count" />
         </ElCard>
       </ElCol>
+    </ElRow>
+
+    <ElRow v-if="stats?.by_difficulty" :gutter="16">
       <ElCol :sm="12" :xs="24">
         <ElCard shadow="hover" class="mb-16px">
-          <div ref="pieRef" style="height: 200px" />
+          <div ref="pieRef" style="height: 280px; width: 100%" />
         </ElCard>
       </ElCol>
     </ElRow>

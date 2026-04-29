@@ -106,17 +106,17 @@ export function fetchCreateMenu(data: Exam.RBAC.MenuCreateRequest) {
   });
 }
 
-export function fetchUpdateMenu(menuId: number, data: Partial<Exam.RBAC.Menu>) {
+export function fetchUpdateMenu(menuName: string, data: Partial<Exam.RBAC.MenuCreateRequest>) {
   return request<Exam.RBAC.Menu>({
-    url: `/admin/rbac/menus/${menuId}`,
+    url: `/admin/rbac/menus/${menuName}`,
     method: 'put',
     data
   });
 }
 
-export function fetchDeleteMenu(menuId: number) {
+export function fetchDeleteMenu(menuName: string) {
   return request<null>({
-    url: `/admin/rbac/menus/${menuId}`,
+    url: `/admin/rbac/menus/${menuName}`,
     method: 'delete'
   });
 }
@@ -127,11 +127,11 @@ export function fetchRoleMenus(roleCode: string) {
   });
 }
 
-export function fetchAssignRoleMenus(roleCode: string, menuIds: number[]) {
+export function fetchAssignRoleMenus(roleCode: string, menuNames: string[]) {
   return request<null>({
     url: '/admin/rbac/roles/menus',
     method: 'post',
-    data: { role_code: roleCode, menu_ids: menuIds }
+    data: { role_code: roleCode, menu_ids: menuNames }
   });
 }
 

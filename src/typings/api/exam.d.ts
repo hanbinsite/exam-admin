@@ -371,38 +371,27 @@ declare namespace Exam {
       permissions?: Permission[];
     }
 
+    interface MenuMeta {
+      title: string;
+      i18nKey: string;
+      icon: string;
+      order: number;
+      hideInMenu: boolean;
+      href: string | null;
+    }
+
     interface Menu {
-      id: number;
-      parent_id: number | null;
       name: string;
-      route_key: string;
       path: string;
-      icon?: string;
-      component?: string | null;
-      permission_code?: string;
-      i18n_key?: string;
-      hide_in_menu: boolean;
-      href?: string | null;
-      sort_order: number;
-      is_visible: boolean;
-      is_active: boolean;
+      meta: MenuMeta;
       children?: Menu[];
     }
 
     interface MenuCreateRequest {
-      parent_id?: number | null;
       name: string;
-      route_key?: string;
       path?: string;
-      icon?: string;
-      component?: string | null;
-      permission_code?: string;
-      i18n_key?: string;
-      hide_in_menu?: boolean;
-      href?: string | null;
-      sort_order?: number;
-      is_visible?: boolean;
-      is_active?: boolean;
+      parent_name?: string;
+      meta: Partial<MenuMeta>;
     }
 
     interface AdminDetail {

@@ -44,7 +44,7 @@ const currentRoleCode = ref('');
 const checkedPermissions = ref<string[]>([]);
 const menuDialogVisible = ref(false);
 const menuSubmitting = ref(false);
-const checkedMenuIds = ref<number[]>([]);
+const checkedMenuNames = ref<string[]>([]);
 const currentRoleCodeForMenu = ref('');
 
 const rules: FormRules = {
@@ -158,9 +158,9 @@ async function handleMenuAssign(row: Exam.RBAC.Role) {
   currentRoleCodeForMenu.value = row.code;
   const { data, error } = await fetchRoleMenus(row.code);
   if (!error && data) {
-    checkedMenuIds.value = data.map(m => m.id);
+    checkedMenuNames.value = data.map(m => m.name);
   } else {
-    checkedMenuIds.value = [];
+    checkedMenuNames.value = [];
   }
   menuDialogVisible.value = true;
 }
@@ -168,7 +168,7 @@ async function handleMenuAssign(row: Exam.RBAC.Role) {
 async function handleMenuSubmit() {
   menuSubmitting.value = true;
   try {
-    const { error } = await fetchAssignRoleMenus(currentRoleCodeForMenu.value, checkedMenuIds.value);
+    const { error } = await fetchAssignRoleMenus(currentRoleCodeForMenu.value, checkedMenuNames.value);
     if (!error) {
       ElMessage.success('菜单分配成功');
       menuDialogVisible.value = false;
@@ -284,12 +284,12 @@ onMounted(loadRoles);
       <ElTree
         :data="menus"
         show-checkbox
-        node-key="id"
-        :default-checked-keys="checkedMenuIds"
-        :props="{ label: 'name', children: 'children' }"
+        node-key="name"
+        :default-checked-keys="checkedMenuNames"
+        :props="{ label: 'meta.title', children: 'children' }"
         @check="
-          (_node: any, checked: { checkedKeys: number[] }) => {
-            checkedMenuIds = checked.checkedKeys;
+          (_node: any, checked: { checkedKeys: string[] }) => {
+            checkedMenuNames = checked.checkedKeys;
           }
         "
       />

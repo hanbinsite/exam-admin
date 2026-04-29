@@ -18,41 +18,33 @@ const submitting = ref(false);
 const formRef = ref<FormInstance>();
 
 const form = reactive({
-  parent_id: null as number | null,
   name: '',
-  route_key: '',
   path: '',
-  icon: '',
-  component: '',
-  permission_code: '',
-  i18n_key: '',
-  hide_in_menu: false,
-  is_visible: true,
-  is_active: true,
-  sort_order: 0
+  parent_name: '',
+  meta: {
+    title: '',
+    i18nKey: '',
+    icon: '',
+    order: 0,
+    hideInMenu: false,
+    href: ''
+  }
 });
 
-const editingId = ref<number | null>(null);
+const editingName = ref<string | null>(null);
 
 const rules: FormRules = {
-  name: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
-  path: [{ required: true, message: '请输入路径', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入菜单标识', trigger: 'blur' }],
+  path: [{ required: true, message: '请输入路径', trigger: 'blur' }],
+  'meta.title': [{ required: true, message: '请输入标题', trigger: 'blur' }]
 };
 
 function resetForm() {
-  form.parent_id = null;
   form.name = '';
-  form.route_key = '';
   form.path = '';
-  form.icon = '';
-  form.component = '';
-  form.permission_code = '';
-  form.i18n_key = '';
-  form.hide_in_menu = false;
-  form.is_visible = true;
-  form.is_active = true;
-  form.sort_order = 0;
-  editingId.value = null;
+  form.parent_name = '';
+  form.meta = { title: '', i18nKey: '', icon: '', order: 0, hideInMenu: false, href: '' };
+  editingName.value = null;
   formRef.value?.resetFields();
 }
 
@@ -70,19 +62,16 @@ function handleAdd() {
 }
 
 function handleEdit(row: Exam.RBAC.Menu) {
-  editingId.value = row.id;
-  form.parent_id = row.parent_id;
+  editingName.value = row.name;
   form.name = row.name;
-  form.route_key = row.route_key || '';
   form.path = row.path;
-  form.icon = row.icon || '';
-  form.component = row.component || '';
-  form.permission_code = row.permission_code || '';
-  form.i18n_key = row.i18n_key || '';
-  form.hide_in_menu = row.hide_in_menu;
-  form.is_visible = row.is_visible;
-  form.is_active = row.is_active;
-  form.sort_order = row.sort_order;
+  form.parent_name = '';
+  form.meta.title = row.meta.title;
+  form.meta.i18nKey = row.meta.i18nKey || '';
+  form.meta.icon = row.meta.icon || '';
+  form.meta.order = row.meta.order;
+  form.meta.hideInMenu = row.meta.hideInMenu;
+  form.meta.href = row.meta.href || '';
   dialogTitle.value = '编辑菜单';
   dialogVisible.value = true;
 }
@@ -93,21 +82,20 @@ async function handleSubmit() {
   submitting.value = true;
   try {
     const data: Exam.RBAC.MenuCreateRequest = {
-      parent_id: form.parent_id,
       name: form.name,
-      route_key: form.route_key,
       path: form.path,
-      icon: form.icon,
-      component: form.component || null,
-      permission_code: form.permission_code,
-      i18n_key: form.i18n_key,
-      hide_in_menu: form.hide_in_menu,
-      is_visible: form.is_visible,
-      is_active: form.is_active,
-      sort_order: form.sort_order
+      parent_name: form.parent_name || undefined,
+      meta: {
+        title: form.meta.title,
+        i18nKey: form.meta.i18nKey,
+        icon: form.meta.icon,
+        order: form.meta.order,
+        hideInMenu: form.meta.hideInMenu,
+        href: form.meta.href || null
+      }
     };
-    if (editingId.value) {
-      const { error } = await fetchUpdateMenu(editingId.value, data);
+    if (editingName.value) {
+      const { error } = await fetchUpdateMenu(editingName.value, data);
       if (!error) {
         ElMessage.success('更新成功');
         dialogVisible.value = false;
@@ -127,12 +115,12 @@ async function handleSubmit() {
 }
 
 async function handleDelete(row: Exam.RBAC.Menu) {
-  await ElMessageBox.confirm(`确定删除菜单「${row.name}」吗？`, '删除确认', {
+  await ElMessageBox.confirm(`确定删除菜单「${row.meta.title || row.name}」吗？`, '删除确认', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   });
-  const { error } = await fetchDeleteMenu(row.id);
+  const { error } = await fetchDeleteMenu(row.name);
   if (!error) {
     ElMessage.success('删除成功');
     loadData();
@@ -152,18 +140,20 @@ async function handleRbacInit() {
   }
 }
 
-function flattenMenusWithIndent(
-  menuList: Exam.RBAC.Menu[],
-  indent = 0,
-  excludeId?: number | null
-): { id: number; name: string; path: string; indent: number }[] {
-  const result: { id: number; name: string; path: string; indent: number }[] = [];
+interface FlatMenu {
+  name: string;
+  title: string;
+  indent: number;
+}
+
+function flattenMenusWithIndent(menuList: Exam.RBAC.Menu[], indent = 0, excludeName?: string | null): FlatMenu[] {
+  const result: FlatMenu[] = [];
   for (const menu of menuList) {
-    if (menu.id !== excludeId) {
-      result.push({ id: menu.id, name: menu.name, path: menu.path, indent });
+    if (menu.name !== excludeName) {
+      result.push({ name: menu.name, title: menu.meta.title, indent });
     }
-    if (menu.children && menu.children.length > 0 && menu.id !== excludeId) {
-      result.push(...flattenMenusWithIndent(menu.children, indent + 1, excludeId));
+    if (menu.children && menu.children.length > 0 && menu.name !== excludeName) {
+      result.push(...flattenMenusWithIndent(menu.children, indent + 1, excludeName));
     }
   }
   return result;
@@ -186,15 +176,42 @@ onMounted(loadData);
           </div>
         </div>
       </template>
-      <ElTable v-loading="loading" :data="menus" border stripe row-key="id" default-expand-all>
-        <ElTableColumn prop="id" label="ID" width="80" />
-        <ElTableColumn prop="name" label="菜单名称" min-width="150" />
-        <ElTableColumn prop="path" label="路径" min-width="200" />
-        <ElTableColumn prop="icon" label="图标" width="120" />
-        <ElTableColumn prop="component" label="组件" min-width="150" />
-        <ElTableColumn prop="permission_code" label="权限码" width="150" />
-        <ElTableColumn prop="sort_order" label="排序" width="80" align="center" />
-        <ElTableColumn label="操作" width="150" align="center">
+      <ElTable v-loading="loading" :data="menus" border stripe row-key="name" default-expand-all>
+        <ElTableColumn label="标识" min-width="160">
+          <template #default="{ row }">
+            <span class="font-medium">{{ row.name }}</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="标题" min-width="120">
+          <template #default="{ row }">
+            <ElTag size="small" type="warning">{{ row.meta.title }}</ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="path" label="路径" min-width="180" />
+        <ElTableColumn label="图标" width="100" align="center">
+          <template #default="{ row }">
+            <span v-if="row.meta.icon">{{ row.meta.icon }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="i18nKey" min-width="180">
+          <template #default="{ row }">
+            <span class="text-xs text-gray-500">{{ row.meta.i18nKey || '-' }}</span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="排序" width="70" align="center">
+          <template #default="{ row }">
+            {{ row.meta.order }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="隐藏" width="70" align="center">
+          <template #default="{ row }">
+            <ElTag :type="row.meta.hideInMenu ? 'danger' : 'success'" size="small">
+              {{ row.meta.hideInMenu ? '是' : '否' }}
+            </ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="160" align="center">
           <template #default="{ row }">
             <ElButton
               v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
@@ -219,50 +236,41 @@ onMounted(loadData);
       </ElTable>
     </ElCard>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">
-      <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="550px" @close="resetForm">
+      <ElForm ref="formRef" :model="form" :rules="rules" label-width="100px">
         <ElFormItem label="父菜单">
-          <ElSelect v-model="form.parent_id" placeholder="选择父菜单" clearable>
+          <ElSelect v-model="form.parent_name" placeholder="留空为顶级菜单" clearable>
             <ElOption
-              v-for="m in flattenMenusWithIndent(menus, 0, editingId)"
-              :key="m.id"
-              :label="`${'\u0020\u0020'.repeat(m.indent)}${m.name}`"
-              :value="m.id"
+              v-for="m in flattenMenusWithIndent(menus, 0, editingName)"
+              :key="m.name"
+              :label="`${'  '.repeat(m.indent)}${m.title}`"
+              :value="m.name"
             />
           </ElSelect>
         </ElFormItem>
-        <ElFormItem label="名称" prop="name">
-          <ElInput v-model="form.name" placeholder="菜单名称" />
+        <ElFormItem label="菜单标识" prop="name">
+          <ElInput v-model="form.name" :disabled="!!editingName" placeholder="唯一标识，如 subjects" />
         </ElFormItem>
-        <ElFormItem label="路由标识">
-          <ElInput v-model="form.route_key" placeholder="如 subjects_list" />
+        <ElFormItem label="标题" prop="meta.title">
+          <ElInput v-model="form.meta.title" placeholder="显示标题，如 科目管理" />
         </ElFormItem>
         <ElFormItem label="路径" prop="path">
-          <ElInput v-model="form.path" placeholder="/path" />
+          <ElInput v-model="form.path" placeholder="/subjects" />
+        </ElFormItem>
+        <ElFormItem label="i18nKey">
+          <ElInput v-model="form.meta.i18nKey" placeholder="如 route.subjects" />
         </ElFormItem>
         <ElFormItem label="图标">
-          <ElInput v-model="form.icon" placeholder="icon-name" />
+          <ElInput v-model="form.meta.icon" placeholder="如 mdi:book-open-variant" />
         </ElFormItem>
-        <ElFormItem label="组件">
-          <ElInput v-model="form.component" placeholder="component path" />
-        </ElFormItem>
-        <ElFormItem label="权限码">
-          <ElInput v-model="form.permission_code" placeholder="permission:code" />
-        </ElFormItem>
-        <ElFormItem label="i18n键">
-          <ElInput v-model="form.i18n_key" placeholder="如 menu.subjects" />
-        </ElFormItem>
-        <ElFormItem label="隐藏菜单">
-          <ElSwitch v-model="form.hide_in_menu" />
-        </ElFormItem>
-        <ElFormItem label="可见">
-          <ElSwitch v-model="form.is_visible" />
-        </ElFormItem>
-        <ElFormItem label="启用">
-          <ElSwitch v-model="form.is_active" />
+        <ElFormItem label="外链">
+          <ElInput v-model="form.meta.href" placeholder="外部链接地址" />
         </ElFormItem>
         <ElFormItem label="排序">
-          <ElInputNumber v-model="form.sort_order" :min="0" />
+          <ElInputNumber v-model="form.meta.order" :min="0" />
+        </ElFormItem>
+        <ElFormItem label="隐藏菜单">
+          <ElSwitch v-model="form.meta.hideInMenu" />
         </ElFormItem>
       </ElForm>
       <template #footer>
