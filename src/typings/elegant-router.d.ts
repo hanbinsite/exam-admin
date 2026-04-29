@@ -31,13 +31,6 @@ declare module "@elegant-router/types" {
     "document_antd": "/document/antd";
     "document_element-plus": "/document/element-plus";
     "document_alova": "/document/alova";
-    "403": "/403";
-    "404": "/404";
-    "500": "/500";
-    "dashboard": "/dashboard";
-    "iframe-page": "/iframe-page/:url";
-    "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
-    "user-center": "/user-center";
     "subjects": "/subjects";
     "subjects_list": "/subjects/list";
     "question-types": "/question-types";
@@ -50,7 +43,7 @@ declare module "@elegant-router/types" {
     "materials_list": "/materials/list";
     "exams": "/exams";
     "exams_list": "/exams/list";
-    "exams_sessions": "/exams/sessions/:examId";
+    "exams_sessions": "/exams/sessions";
     "scores": "/scores";
     "scores_list": "/scores/list";
     "users": "/users";
@@ -60,6 +53,13 @@ declare module "@elegant-router/types" {
     "rbac_roles": "/rbac/roles";
     "rbac_admins": "/rbac/admins";
     "rbac_menus": "/rbac/menus";
+    "403": "/403";
+    "404": "/404";
+    "500": "/500";
+    "dashboard": "/dashboard";
+    "iframe-page": "/iframe-page/:url";
+    "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
+    "user-center": "/user-center";
   };
 
   /**
@@ -93,6 +93,28 @@ declare module "@elegant-router/types" {
     | "document_antd"
     | "document_element-plus"
     | "document_alova"
+    | "subjects"
+    | "subjects_list"
+    | "question-types"
+    | "question-types_list"
+    | "questions"
+    | "questions_list"
+    | "knowledge-points"
+    | "knowledge-points_list"
+    | "materials"
+    | "materials_list"
+    | "exams"
+    | "exams_list"
+    | "exams_sessions"
+    | "scores"
+    | "scores_list"
+    | "users"
+    | "users_list"
+    | "rbac"
+    | "rbac_permissions"
+    | "rbac_roles"
+    | "rbac_admins"
+    | "rbac_menus"
   >;
 
   /**
@@ -112,15 +134,6 @@ declare module "@elegant-router/types" {
     | "iframe-page"
     | "login"
     | "user-center"
-    | "subjects"
-    | "question-types"
-    | "questions"
-    | "knowledge-points"
-    | "materials"
-    | "exams"
-    | "scores"
-    | "users"
-    | "rbac"
   >;
 
   /**
@@ -132,6 +145,15 @@ declare module "@elegant-router/types" {
     | "not-found"
     | "exception"
     | "document"
+    | "subjects"
+    | "question-types"
+    | "questions"
+    | "knowledge-points"
+    | "materials"
+    | "exams"
+    | "scores"
+    | "users"
+    | "rbac"
   >;
 
   /**
@@ -146,19 +168,6 @@ declare module "@elegant-router/types" {
     | "login"
     | "dashboard"
     | "user-center"
-    | "subjects_list"
-    | "question-types_list"
-    | "questions_list"
-    | "knowledge-points_list"
-    | "materials_list"
-    | "exams_list"
-    | "exams_sessions"
-    | "scores_list"
-    | "users_list"
-    | "rbac_permissions"
-    | "rbac_roles"
-    | "rbac_admins"
-    | "rbac_menus"
   >;
 
   /**
@@ -180,6 +189,28 @@ declare module "@elegant-router/types" {
     | "document_antd"
     | "document_element-plus"
     | "document_alova"
+    | "subjects"
+    | "subjects_list"
+    | "question-types"
+    | "question-types_list"
+    | "questions"
+    | "questions_list"
+    | "knowledge-points"
+    | "knowledge-points_list"
+    | "materials"
+    | "materials_list"
+    | "exams"
+    | "exams_list"
+    | "exams_sessions"
+    | "scores"
+    | "scores_list"
+    | "users"
+    | "users_list"
+    | "rbac"
+    | "rbac_permissions"
+    | "rbac_roles"
+    | "rbac_admins"
+    | "rbac_menus"
   >;
 
   /**

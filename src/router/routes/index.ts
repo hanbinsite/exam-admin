@@ -1,10 +1,13 @@
 import type { CustomRoute, ElegantConstRoute, ElegantRoute } from '@elegant-router/types';
 import { generatedRoutes } from '../elegant/routes';
 import { layouts, views } from '../elegant/imports';
+import { customViews } from '../elegant/custom-imports';
 import { transformElegantRoutesToVueRoutes } from '../elegant/transform';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const customRoutes: CustomRoute[] = [];
+
+const allViews = { ...views, ...customViews };
 
 /** create routes when the auth route mode is static */
 export function createStaticRoutes() {
@@ -29,5 +32,5 @@ export function createStaticRoutes() {
  * @param routes Elegant routes
  */
 export function getAuthVueRoutes(routes: ElegantConstRoute[]) {
-  return transformElegantRoutesToVueRoutes(routes, layouts, views);
+  return transformElegantRoutesToVueRoutes(routes, layouts, allViews);
 }

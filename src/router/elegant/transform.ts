@@ -177,13 +177,6 @@ const routeMap: RouteMap = {
   "document_antd": "/document/antd",
   "document_element-plus": "/document/element-plus",
   "document_alova": "/document/alova",
-  "403": "/403",
-  "404": "/404",
-  "500": "/500",
-  "dashboard": "/dashboard",
-  "iframe-page": "/iframe-page/:url",
-  "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?",
-  "user-center": "/user-center",
   "subjects": "/subjects",
   "subjects_list": "/subjects/list",
   "question-types": "/question-types",
@@ -196,7 +189,7 @@ const routeMap: RouteMap = {
   "materials_list": "/materials/list",
   "exams": "/exams",
   "exams_list": "/exams/list",
-  "exams_sessions": "/exams/sessions/:examId",
+  "exams_sessions": "/exams/sessions",
   "scores": "/scores",
   "scores_list": "/scores/list",
   "users": "/users",
@@ -206,6 +199,13 @@ const routeMap: RouteMap = {
   "rbac_roles": "/rbac/roles",
   "rbac_admins": "/rbac/admins",
   "rbac_menus": "/rbac/menus",
+  "403": "/403",
+  "404": "/404",
+  "500": "/500",
+  "dashboard": "/dashboard",
+  "iframe-page": "/iframe-page/:url",
+  "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?",
+  "user-center": "/user-center"
 };
 
 /**
