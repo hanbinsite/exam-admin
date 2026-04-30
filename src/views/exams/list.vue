@@ -4,7 +4,14 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
-import { fetchCreateExam, fetchDeleteExam, fetchExamList, fetchQuestionTypeList, fetchUpdateExam } from '@/service/api';
+import {
+  fetchAdminExamDetail,
+  fetchCreateExam,
+  fetchDeleteExam,
+  fetchExamList,
+  fetchQuestionTypeList,
+  fetchUpdateExam
+} from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
 import { useAuth } from '@/hooks/business/auth';
 
@@ -16,6 +23,7 @@ const { hasAuth } = useAuth();
 const exams = ref<Exam.ExamModule.ExamConfig[]>([]);
 const questionTypes = ref<Exam.QuestionType.QuestionType[]>([]);
 const loading = ref(false);
+const editLoading = ref(false);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增考试');
 const submitting = ref(false);
@@ -153,17 +161,28 @@ function handleAdd() {
   dialogVisible.value = true;
 }
 
-function handleEdit(row: Exam.ExamModule.ExamConfig) {
+async function handleEdit(row: Exam.ExamModule.ExamConfig) {
   editingId.value = row.id;
-  form.subject_id = row.subject_id;
-  form.name = row.name;
-  form.description = row.description || '';
-  form.duration = row.duration;
-  form.is_active = row.is_active;
-  parseQuestionRules(row.question_rules);
-  parseScoringRules(row.scoring_rules);
   dialogTitle.value = '编辑考试';
   dialogVisible.value = true;
+  editLoading.value = true;
+  try {
+    const { data } = await fetchAdminExamDetail(row.id);
+    if (!data) {
+      ElMessage.error('获取考试详情失败');
+      dialogVisible.value = false;
+      return;
+    }
+    form.subject_id = data.subject_id;
+    form.name = data.name;
+    form.description = data.description || '';
+    form.duration = data.duration;
+    form.is_active = data.is_active;
+    parseQuestionRules(data.question_rules);
+    parseScoringRules(data.scoring_rules);
+  } finally {
+    editLoading.value = false;
+  }
 }
 
 async function handleSubmit() {
@@ -292,7 +311,7 @@ onMounted(() => {
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="750px" @close="resetForm">
-      <ElForm ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <ElForm ref="formRef" v-loading="editLoading" :model="form" :rules="rules" label-width="100px">
         <ElFormItem label="考试名称" prop="name">
           <ElInput v-model="form.name" placeholder="考试名称" />
         </ElFormItem>
