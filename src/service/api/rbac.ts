@@ -198,13 +198,13 @@ export function fetchActivateAdmin(adminId: string) {
 }
 
 export function fetchUserSubjects(userId: string) {
-  return request<string[]>({
+  return request<{ user_id: string; subject_ids: string[] }>({
     url: `/admin/rbac/user-subjects/${userId}`
   });
 }
 
 export function fetchSubjectUsers(subjectId: string) {
-  return request<string[]>({
+  return request<{ subject_id: string; user_ids: string[] }>({
     url: `/admin/rbac/user-subjects/subject/${subjectId}`
   });
 }

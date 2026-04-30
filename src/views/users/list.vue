@@ -210,7 +210,7 @@ async function handleSubjectManage(row: Exam.User.User) {
   currentUserForSubject.value = row;
   const [userSubjectsRes, subjectListRes] = await Promise.all([fetchUserSubjects(row.id), fetchSubjectList()]);
   if (!userSubjectsRes.error && userSubjectsRes.data) {
-    currentUserSubjects.value = userSubjectsRes.data;
+    currentUserSubjects.value = userSubjectsRes.data.subject_ids || [];
   } else {
     currentUserSubjects.value = [];
   }
@@ -224,7 +224,7 @@ async function handleSubjectChange() {
   if (!currentUserForSubject.value) return;
   subjectSubmitting.value = true;
   try {
-    const existing = (await fetchUserSubjects(currentUserForSubject.value.id)).data || [];
+    const existing = (await fetchUserSubjects(currentUserForSubject.value.id)).data?.subject_ids || [];
     const toAdd = currentUserSubjects.value.filter(s => !existing.includes(s));
     const toRemove = existing.filter((s: string) => !currentUserSubjects.value.includes(s));
 
