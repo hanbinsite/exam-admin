@@ -15,10 +15,10 @@
 - **Dependencies**: T001
 - **Time**: 1h
 - **Acceptance**:
-  - src/api/client.ts 可发送请求并自动附加 Admin JWT
+  - src/service/request/index.ts 可发送请求并自动附加 Admin JWT（使用 createFlatRequest）
   - 401 响应自动跳转登录页
-  - 统一响应格式处理
-- **Key files**: src/api/client.ts, src/typings/api.d.ts
+  - 统一响应格式处理（transform 自动解包 response.data.data）
+- **Key files**: src/service/request/index.ts, src/typings/api/exam.d.ts
 - **Cross-refs**: 04-api-design § Base Client
 
 ## T003: Auth Store改造
@@ -29,7 +29,7 @@
   - 登录调用 `/admin/auth/login`
   - token 存 localStorage
   - logout 清除 token 并跳转登录页
-- **Key files**: src/store/modules/auth.ts, src/api/exam-server/auth.ts
+- **Key files**: src/store/modules/auth.ts, src/service/api/auth.ts
 - **Cross-refs**: 05-dev-guide § Auth 改造
 
 ## T004: Login Page改造
@@ -48,16 +48,16 @@
 - **Time**: 2h
 - **Acceptance**: 所有API模块创建完成，类型定义完整
 - **Key files**:
-  - src/api/exam-server/auth.ts
-  - src/api/exam-server/dashboard.ts
-  - src/api/exam-server/subjects.ts
-  - src/api/exam-server/question-types.ts
-  - src/api/exam-server/questions.ts
-  - src/api/exam-server/materials.ts
-  - src/api/exam-server/exams.ts
-  - src/api/exam-server/scores.ts
-  - src/api/exam-server/users.ts
-  - src/api/exam-server/rbac.ts
+  - src/service/api/auth.ts
+  - src/service/api/dashboard.ts
+  - src/service/api/subjects.ts
+  - src/service/api/question-types.ts
+  - src/service/api/questions.ts
+  - src/service/api/materials.ts
+  - src/service/api/exams.ts
+  - src/service/api/scores.ts
+  - src/service/api/users.ts
+  - src/service/api/rbac.ts
 - **Cross-refs**: 04-api-design § API Modules
 
 ## T006: 类型定义
@@ -65,7 +65,7 @@
 - **Dependencies**: T001
 - **Time**: 1h
 - **Acceptance**: 所有业务类型定义完整，API响应类型正确
-- **Key files**: src/typings/business.d.ts, src/typings/api.d.ts
+- **Key files**: src/typings/api/exam.d.ts
 - **Cross-refs**: 05-dev-guide § 类型定义
 
 ## T007: Dashboard Page
@@ -75,7 +75,7 @@
 - **Acceptance**:
   - 3个统计卡片正常显示
   - 调用 `/admin/dashboard` 获取数据
-- **Key files**: src/views/dashboard/index.vue, src/api/exam-server/dashboard.ts
+- **Key files**: src/views/dashboard/index.vue, src/service/api/dashboard.ts
 - **Cross-refs**: 02-feature-design § Page 2: Dashboard
 
 ## T008: Subject Management
@@ -87,7 +87,7 @@
   - 新增/编辑弹窗可用
   - 删除有确认对话框
   - 状态开关（is_active）可用
-- **Key files**: src/views/subjects/list.vue, src/api/exam-server/subjects.ts
+- **Key files**: src/views/subjects/list.vue, src/service/api/subjects.ts
 - **Cross-refs**: 02-feature-design § Page 3: Subject Management
 
 ## T009: Question Type Management
@@ -98,7 +98,7 @@
   - 左侧科目选择器
   - 题型列表按科目筛选
   - 新增/编辑/删除功能正常
-- **Key files**: src/views/question-types/list.vue, src/api/exam-server/question-types.ts
+- **Key files**: src/views/question-types/list.vue, src/service/api/question-types.ts
 - **Cross-refs**: 02-feature-design § Page 4: Question Type Management
 
 ## T010: Question Management - List & Stats
@@ -109,7 +109,7 @@
   - 科目选择器 + 题型统计卡片
   - 题目列表表格（筛选、分页）
   - 调用 `/subjects/{id}/questions/stats`
-- **Key files**: src/views/questions/list.vue, src/api/exam-server/questions.ts
+- **Key files**: src/views/questions/list.vue, src/service/api/questions.ts
 - **Cross-refs**: 02-feature-design § Page 5: Question Management
 
 ## T011: Question Management - Form & CRUD
@@ -177,7 +177,7 @@
 - **Acceptance**:
   - 用户列表表格（分页）
   - 搜索框（前端过滤）
-- **Key files**: src/views/users/list.vue, src/api/exam-server/users.ts
+- **Key files**: src/views/users/list.vue, src/service/api/users.ts
 - **Cross-refs**: 02-feature-design § Page 9: User Management
 
 ## T017: RBAC - Permissions
@@ -228,9 +228,9 @@
 - **Dependencies**: T007-T020
 - **Time**: 1h
 - **Acceptance**:
-  - 所有业务路由配置完成
+  - 所有业务路由自动生成
   - 侧边栏菜单正确显示
-- **Key files**: src/router/routes/modules/exam-server/*.ts
+- **Key files**: src/router/elegant/routes.ts, src/plugins/router.ts
 - **Cross-refs**: 05-dev-guide § 路由配置
 
 ## T022: 权限控制集成

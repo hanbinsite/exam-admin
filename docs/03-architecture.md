@@ -22,6 +22,9 @@
 
 ```
 exam-admin/
+├── build/                     # 构建插件配置
+│   └── plugins/
+│       └── index.ts           # 插件入口（路由生成等）
 ├── packages/                  # pnpm monorepo 子包
 │   ├── locales/               # 国际化语言包
 │   ├── utils/                 # 工具函数
@@ -32,9 +35,22 @@ exam-admin/
 ├── src/
 │   ├── main.ts                # 入口
 │   ├── App.vue                # 根组件
-│   ├── api/                   # API调用层
-│   │   ├── client.ts          # Axios实例 + JWT拦截器
-│   │   └── exam-server/       # exam-server API模块
+│   ├── constants/             # 业务常量
+│   │   ├── permissions.ts     # 权限code常量
+│   │   └── ...
+│   ├── hooks/                 # 组合式函数
+│   │   └── business/          # 业务hooks（auth等）
+│   ├── locales/               # 国际化配置
+│   ├── plugins/               # 插件配置
+│   ├── router/                # Elegant Router 自动生成
+│   │   ├── elegant/           # 路由定义与转换
+│   │   │   ├── routes.ts      # 路由映射表
+│   │   │   └── transform.ts   # 路由转换逻辑
+│   │   └── index.ts           # 路由入口
+│   ├── service/               # API 服务层
+│   │   ├── request/
+│   │   │   └── index.ts       # Axios实例 + createFlatRequest
+│   │   └── api/               # API模块
 │   │       ├── auth.ts        # 管理员认证
 │   │       ├── dashboard.ts   # 仪表盘
 │   │       ├── subjects.ts    # 科目管理
@@ -44,16 +60,8 @@ exam-admin/
 │   │       ├── exams.ts       # 考试配置
 │   │       ├── scores.ts      # 成绩统计
 │   │       ├── users.ts       # 用户管理
+│   │       ├── knowledge-points.ts  # 知识点管理
 │   │       └── rbac.ts        # RBAC权限管理
-│   ├── constants/             # 业务常量
-│   │   ├── permissions.ts     # 权限code常量
-│   │   └── question-types.ts  # 题型预设
-│   ├── dao/                   # 数据访问（SoybeanAdmin内置）
-│   ├── layouts/               # 布局组件（内置，可直接使用）
-│   ├── plugins/               # 插件配置
-│   ├── router/                # Elegant Router 自动生成
-│   │   ├── routes/            # 路由模块
-│   │   │   └── exam-server/   # 业务路由模块
 │   ├── store/                 # Pinia状态管理
 │   │   └── modules/
 │   │       ├── auth.ts        # 认证状态（改造：调 /admin/auth/login）
@@ -61,30 +69,31 @@ exam-admin/
 │   ├── theme/                 # 主题设置（内置）
 │   ├── typings/               # 类型定义
 │   │   ├── api.d.ts           # API通用类型
-│   │   └── business.d.ts      # 业务类型
+│   │   └── api/               # 业务API类型
+│   │       └── exam.d.ts      # Exam命名空间类型定义
 │   ├── utils/                 # 工具函数
+│   │   ├── storage.ts         # localStg 存储封装
+│   │   └── ...
 │   └── views/                 # 页面视图
 │       ├── _builtin/          # 内置页面（登录、403、404等）
 │       ├── dashboard/         # 仪表盘
 │       │   └── index.vue
 │       ├── subjects/          # 科目管理
-│       │   ├── list.vue       # 科目列表
-│       │   └── detail.vue     # 科目详情/编辑
+│       │   └── list.vue       # 科目列表+弹窗CRUD
 │       ├── question-types/    # 题型管理
 │       │   └── list.vue
 │       ├── questions/         # 题库管理
 │       │   ├── list.vue       # 题目列表
-│       │   ├── detail.vue     # 题目详情/编辑
-│       │   └── import.vue     # 批量导入
+│       │   └── detail.vue     # 题目详情/编辑
 │       ├── materials/         # 学习资料
-│       │   ├── list.vue       # 资料列表
-│       │   └── detail.vue     # 资料编辑
+│       │   └── list.vue       # 资料列表+弹窗CRUD
 │       ├── exams/             # 考试配置
 │       │   ├── list.vue       # 考试列表
-│       │   └── detail.vue     # 考试配置编辑
+│       │   └── sessions.vue   # 考试场次
 │       ├── scores/            # 成绩统计
-│       │   ├── list.vue       # 成绩列表
-│       │   └── stats.vue      # 统计图表
+│       │   └── list.vue       # 成绩统计+列表
+│       ├── knowledge-points/  # 知识点管理
+│       │   └── list.vue
 │       ├── users/             # 用户管理
 │       │   └── list.vue
 │       ├── rbac/              # RBAC权限管理
@@ -92,8 +101,8 @@ exam-admin/
 │       │   ├── roles.vue        # 角色管理
 │       │   ├── menus.vue        # 菜单管理
 │       │   └── admins.vue       # 管理员管理
-│       └── progress/          # 答题进度（开发中）
-│           └── list.vue
+│       └── user-center/       # 用户中心
+│           └── index.vue      # 个人资料+修改密码
 ├── .env                       # 开发环境变量
 ├── .env.prod                  # 生产环境变量
 ├── .env.test                  # 测试环境变量
@@ -104,6 +113,7 @@ exam-admin/
 ├── pnpm-workspace.yaml
 ├── vercel.json                # Vercel部署配置
 ├── AGENTS.md
+├── admin-api.md               # 后端API文档
 └── docs/
 ```
 
@@ -111,11 +121,11 @@ exam-admin/
 
 ```
 用户操作 Vue 组件
-  → 调用 src/api/exam-server/ 中的API函数
-    → Axios 实例自动附加 Admin JWT Bearer header
+  → 调用 src/service/api/ 中的API函数
+    → request<T>() 通过 createFlatRequest 自动附加 Admin JWT Bearer header
       → HTTP 请求到 exam-server API
         → exam-server 校验 JWT + RBAC权限 → 处理请求 → 返回 JSON
-          → Axios 响应拦截器处理统一响应格式
+          → createFlatRequest 响应拦截自动提取 response.data.data
             → Pinia store 更新状态
               → Vue 组件响应式更新
                 → ElMessage 提示（成功/失败）
@@ -125,14 +135,14 @@ exam-admin/
 
 ```
 SoybeanAdmin 内置登录页 → 改造为调 /admin/auth/login
-  → 收到 { token, admin } → token 存 localStorage
+  → 收到 { token, admin } → token 通过 localStg.set('token', `Bearer ${token}`) 存储
     → SoybeanAdmin 内置 auth store 读取 token → 标记已认证
       → Elegant Router 路由守卫：未认证 → 重定向 /login
       → 内置 Layout 包裹所有认证页面
         → Header 显示管理员姓名 + 退出按钮
-          → 退出 → 清除 localStorage → 重定向 /login
+          → 退出 → 清除 localStg → 重定向 /login
 
-JWT 过期 → Axios 响应拦截器检测 401 → 清除 token → 重定向 /login
+JWT 过期 → createFlatRequest 响应拦截检测 401 → 清除 token → 重定向 /login
 ```
 
 ## RBAC + 动态菜单 Flow
@@ -166,7 +176,7 @@ interface ApiResponse<T> {
 
 | 场景 | 处理方式 |
 |------|----------|
-| 401 未登录 | 清除token，重定向 /login |
+| 401 未登录 | 清除 localStg token，重定向 /login |
 | 403 权限不足 | ElMessage.error 提示"权限不足" |
 | 404 资源不存在 | ElMessage.warning 提示，返回列表页 |
 | 409 冲突 | ElMessage.warning 提示具体冲突原因 |

@@ -20,6 +20,7 @@ declare namespace Exam {
       name: string;
       email: string;
       role: string;
+      is_active?: boolean;
       role_info: {
         code: string;
         name: string;
@@ -252,6 +253,11 @@ declare namespace Exam {
       fixed_ids?: number[];
     }
 
+    interface ScoringRule {
+      comparison: 'exact' | 'contains' | 'normalized';
+      case_sensitive?: boolean;
+    }
+
     interface ExamConfig {
       id: number;
       subject_id: string;
@@ -259,7 +265,7 @@ declare namespace Exam {
       description?: string;
       duration: number;
       question_rules: Record<string, QuestionRule>;
-      scoring_rules: Record<string, number>;
+      scoring_rules: Record<string, ScoringRule>;
       is_active: boolean;
     }
 
@@ -269,7 +275,7 @@ declare namespace Exam {
       description?: string;
       duration?: number;
       question_rules: Record<string, QuestionRule>;
-      scoring_rules: Record<string, number>;
+      scoring_rules: Record<string, ScoringRule>;
       is_active?: boolean;
     }
   }

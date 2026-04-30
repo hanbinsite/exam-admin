@@ -301,7 +301,7 @@ interface Exam {
   description?: string;
   duration: number;
   question_rules: Record<string, { count: number; random?: boolean; fixed_ids?: number[] }>;
-  scoring_rules: Record<string, number>;
+  scoring_rules: Record<string, { comparison: string; case_sensitive?: boolean }>;
   is_active: boolean;
 }
 
@@ -311,7 +311,7 @@ interface ExamCreateRequest {
   description?: string;
   duration?: number;
   question_rules: Record<string, { count: number; random?: boolean; fixed_ids?: number[] }>;
-  scoring_rules: Record<string, number>;
+  scoring_rules: Record<string, { comparison: string; case_sensitive?: boolean }>;
 }
 ```
 
@@ -447,13 +447,17 @@ interface Role {
 
 interface Menu {
   id: number;
-  parent_id: number | null;
   name: string;
+  routeKey?: string;
   path: string;
-  icon?: string;
-  component?: string;
-  permission_code?: string;
-  sort_order: number;
+  meta: {
+    title: string;
+    i18nKey: string;
+    icon: string;
+    order: number;
+    hideInMenu: boolean;
+    href: string | null;
+  };
   children?: Menu[];
 }
 
@@ -534,13 +538,14 @@ interface AdminDetail {
 
 #### 菜单管理 Tab
 
-- 树形表格展示菜单层级
-- 拖拽排序
-- 新增/编辑菜单弹窗（parent_id、path、icon、component、permission_code）
+- 树形表格展示菜单层级（使用 `meta` 嵌套对象：title, i18nKey, icon, order, hideInMenu, href）
+- 新增/编辑菜单弹窗（parent_name、name、path、meta各字段）
 
 ---
 
-## Page 11: Admin Registration (`/admins`)
+## Page 11: Admin Management (under `/rbac/admins`)
+
+管理员管理作为 RBAC 管理的 Tab 之一，集成在 `/rbac` 页面的管理员 Tab 中。
 
 ### API
 
@@ -548,6 +553,75 @@ interface AdminDetail {
 
 ### UI
 
+- 管理员列表（姓名、邮箱、角色、授权科目）
 - 新增管理员弹窗（姓名、邮箱、密码）
 - 注册成功后自动出现在管理员列表中
 - 可紧接着分配角色 + 科目授权
+
+---
+
+## Page 12: Knowledge Points (`/knowledge-points`)
+
+### Data Interface
+
+```typescript
+interface KnowledgePoint {
+  id: number;
+  subject_id: string;
+  parent_id: number | null;
+  name: string;
+  description?: string;
+  sort_order: number;
+  is_active: boolean;
+  children?: KnowledgePoint[];
+}
+```
+
+### API
+
+- `GET /admin/knowledge-points/subjects/{subject_id}` — 获取知识点树
+- `GET /admin/knowledge-points/{id}` — 获取知识点详情
+- `POST /admin/knowledge-points` — 创建知识点（需 `question:manage`）
+- `PUT /admin/knowledge-points/{id}` — 更新知识点（需 `question:manage`）
+- `DELETE /admin/knowledge-points/{id}` — 删除知识点（需 `question:manage`）
+- `POST /admin/knowledge-points/assign` — 题目分配知识点
+- `GET /admin/knowledge-points/questions/{question_id}` — 获取题目关联知识点
+
+### UI
+
+- 左侧科目选择器
+- 树形表格展示知识点层级
+- 新增/编辑弹窗（支持选择父知识点）
+- 删除确认（子知识点需先删除）
+
+---
+
+## Page 13: User Center (`/user-center`)
+
+### Data Interface
+
+```typescript
+interface AdminProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  role_info: {
+    code: string;
+    name: string;
+    is_super: boolean;
+  };
+}
+```
+
+### API
+
+- `GET /admin/auth/me` — 获取当前管理员信息
+- `PUT /admin/auth/me` — 修改个人信息（name, email）
+- `PUT /admin/auth/password` — 修改密码
+
+### UI
+
+- 个人信息 Tab：姓名、邮箱编辑 + 角色显示（只读）
+- 修改密码 Tab：当前密码 + 新密码 + 确认密码
+- 不包含头像上传功能

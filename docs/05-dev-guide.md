@@ -55,16 +55,10 @@ SoybeanAdmin内置的auth store默认调用mock登录接口，需要改造为调
 
 ```typescript
 import { defineStore } from 'pinia';
-import { authApi } from '@/api/exam-server/auth';
+import { fetchAdminLogin, fetchAdminRegister } from '@/service/api';
 import { useRouterPush } from '@/hooks/common/router';
 import { localStg } from '@/utils/storage';
-
-interface AdminInfo {
-  id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'admin' | 'teacher';
-}
+import type { AdminInfo } from '@/typings/business';
 
 interface AuthState {
   admin: AdminInfo | null;
@@ -74,7 +68,7 @@ interface AuthState {
 export const useAuthStore = defineStore('auth-store', {
   state: (): AuthState => ({
     admin: null,
-    token: localStg.get('admin_token') || null,
+    token: localStg.get('token') || null,
   }),
 
   getters: {
@@ -83,31 +77,43 @@ export const useAuthStore = defineStore('auth-store', {
 
   actions: {
     async login(email: string, password: string) {
-      const { data } = await authApi.login(email, password);
-      this.token = data.data.token;
-      this.admin = data.data.admin;
-      localStg.set('admin_token', data.data.token);
-      return data.data.admin;
+      const { data, error } = await fetchAdminLogin(email, password);
+      if (!error && data) {
+        this.token = data.token;
+        this.admin = data.admin;
+        localStg.set('token', data.token);
+        localStg.set('adminInfo', {
+          id: data.admin.id,
+          name: data.admin.name,
+          email: data.admin.email,
+          role: data.admin.role
+        });
+      }
+      return data?.admin;
     },
 
     async register(name: string, email: string, password: string) {
-      const { data } = await authApi.register(name, email, password);
-      this.token = data.data.token;
-      this.admin = data.data.admin;
-      localStg.set('admin_token', data.data.token);
-      return data.data.admin;
+      const { data, error } = await fetchAdminRegister(name, email, password);
+      if (!error && data) {
+        this.token = data.token;
+        this.admin = data.admin;
+        localStg.set('token', data.token);
+      }
+      return data?.admin;
     },
 
     logout() {
       this.token = null;
       this.admin = null;
-      localStg.remove('admin_token');
+      localStg.remove('token');
       const { routerPush } = useRouterPush();
       routerPush('/login');
     },
   },
 });
 ```
+
+> 注意：实际代码使用 `localStg.set('token', value)` 而非 `localStorage.setItem('admin_token', value)`，token 格式为 `Bearer xxx`。
 
 ### 修改登录页 `src/views/_builtin/login/index.vue`
 
@@ -152,15 +158,14 @@ async function handleLogin() {
 
 ```vue
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { subjectsApi } from '@/api/exam-server/subjects';
-import type { Subject } from '@/typings/business';
+import { fetchSubjectList, fetchCreateSubject, fetchDeleteSubject } from '@/service/api';
+import type { Exam } from '@/typings/api/exam';
 
-const subjects = ref<Subject[]>([]);
+const subjects = ref<Exam.Subject.Subject[]>([]);
 const loading = ref(false);
 const dialogVisible = ref(false);
-const editingSubject = ref<Subject | null>(null);
 
 const form = reactive({
   id: '',
@@ -169,41 +174,34 @@ const form = reactive({
   category: '',
 });
 
-async function fetchSubjects() {
+async function loadSubjects() {
   loading.value = true;
-  try {
-    const { data } = await subjectsApi.list();
-    subjects.value = data.data;
-  } catch (e) {
-    ElMessage.error('获取科目列表失败');
-  } finally {
-    loading.value = false;
+  const { data, error } = await fetchSubjectList();
+  if (!error && data) {
+    subjects.value = data.items;
   }
+  loading.value = false;
 }
 
 async function handleCreate() {
-  try {
-    await subjectsApi.create(form);
+  const { data, error } = await fetchCreateSubject(form);
+  if (!error && data) {
     ElMessage.success('创建成功');
     dialogVisible.value = false;
-    fetchSubjects();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '创建失败');
+    loadSubjects();
   }
 }
 
-async function handleDelete(subject: Subject) {
+async function handleDelete(subject: Exam.Subject.Subject) {
   await ElMessageBox.confirm(`确定删除科目"${subject.name}"？`, '确认删除');
-  try {
-    await subjectsApi.delete(subject.id);
+  const { error } = await fetchDeleteSubject(subject.id);
+  if (!error) {
     ElMessage.success('删除成功');
-    fetchSubjects();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '删除失败');
+    loadSubjects();
   }
 }
 
-onMounted(fetchSubjects);
+onMounted(loadSubjects);
 </script>
 
 <template>
@@ -246,6 +244,8 @@ onMounted(fetchSubjects);
   </div>
 </template>
 ```
+
+> 注意：`request<T>()` 的 `transform` 已自动提取 `response.data.data`，所以直接 `data.items` 而不是 `data.data.items`。API 调用返回 `{ data, error }` 结构，需先检查 `error` 再使用 `data`。
 
 ---
 
@@ -351,201 +351,147 @@ async function handleSubmit() {
 
 ## 路由配置 (Elegant Router)
 
-SoybeanAdmin使用 Elegant Router，路由从 `src/router/routes/` 目录自动生成。
+SoybeanAdmin 使用 Elegant Router，路由从页面目录结构和插件配置自动生成。`src/router/elegant/routes.ts` 为自动生成的路由映射表，`src/router/elegant/transform.ts` 负责将路由定义转换为 Vue Router 配置。
 
-### 新增业务路由模块
+### 新增页面路由
 
-在 `src/router/routes/modules/exam-server/` 下创建路由定义：
+在 `src/views/` 下按目录创建页面文件，插件会自动扫描生成路由：
 
-```typescript
-// src/router/routes/modules/exam-server/subjects.ts
-import type { AppRouteRecordRaw } from '@/router/type';
-
-const subjectsRoute: AppRouteRecordRaw = {
-  path: '/subjects',
-  name: 'subjects',
-  component: () => import('@/views/subjects/list.vue'),
-  meta: {
-    title: '科目管理',
-    i18nKey: 'route.subjects',
-    icon: 'icon-park-outline:book',
-    order: 2,
-  },
-};
-
-export default subjectsRoute;
+```
+src/views/
+├── subjects/list.vue       → 路由 name: "subjects_list", path: /subjects/list
+├── questions/list.vue      → 路由 name: "questions_list", path: /questions/list
+├── rbac/admins.vue         → 路由 name: "rbac_admins", path: /rbac/admins
+└── ...
 ```
 
-### 菜单权限配置
+路由映射规则：
+- 目录名 → 一级路由 path（如 `subjects/` → `/subjects`）
+- 文件名 → 二级路由 path（如 `list.vue` → `/subjects/list`）
+- 路由 name 格式：`{目录}_{文件名}`（如 `subjects_list`）
 
-在 `src/router/routes/modules/exam-server/` 创建其他业务路由：
+### 业务路由模块清单
 
-- `questions.ts` —题库管理
-- `question-types.ts` — 题型管理
-- `materials.ts` — 学习资料
-- `exams.ts` — 考试配置
-- `scores.ts` — 成绩统计
-- `users.ts` — 用户管理
-- `rbac.ts` — RBAC权限
+- `dashboard/index.vue` — 仪表盘
+- `subjects/list.vue` — 科目管理
+- `question-types/list.vue` — 题型管理
+- `questions/list.vue` — 题库管理
+- `questions/detail.vue` — 题目详情/编辑
+- `materials/list.vue` — 学习资料
+- `exams/list.vue` — 考试配置
+- `exams/sessions.vue` — 考试场次
+- `scores/list.vue` — 成绩统计
+- `knowledge-points/list.vue` — 知识点管理
+- `users/list.vue` — 用户管理
+- `rbac/permissions.vue` — 权限管理
+- `rbac/roles.vue` — 角色管理
+- `rbac/menus.vue` — 菜单管理
+- `rbac/admins.vue` — 管理员管理
+- `user-center/index.vue` — 用户中心
 
 ---
 
 ## 类型定义
 
-### `src/typings/business.d.ts`
+### `src/typings/api/exam.d.ts`
+
+类型定义使用 `declare namespace Exam` 命名空间组织，位于 `src/typings/api/exam.d.ts`。各模块类型通过子命名空间划分：
 
 ```typescript
-interface AdminInfo {
-  id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'admin' | 'teacher';
-}
+declare namespace Exam {
+  namespace Auth {
+    interface AdminInfo {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+    }
+    interface AdminProfile {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      role_info: {
+        code: string;
+        name: string;
+        is_super: boolean;
+      };
+    }
+    interface LoginToken {
+      token: string;
+      admin: AdminInfo;
+    }
+    // Menu 使用嵌套 meta 结构
+    interface MenuMeta {
+      title: string;
+      i18nKey?: string | null;
+      icon?: string;
+      order?: number;
+      hideInMenu?: boolean;
+      href?: string;
+    }
+    interface MenuItem {
+      name: string;
+      path: string;
+      meta: MenuMeta;
+      children?: MenuItem[];
+    }
+  }
 
-interface LoginResponse {
-  token: string;
-  admin: AdminInfo;
-}
+  namespace Subject {
+    interface Subject {
+      id: string;
+      name: string;
+      description: string;
+      category: string;
+      icon: string;
+      is_active: boolean;
+      stats?: { totalQuestions: number; totalMaterials: number; totalExams: number };
+    }
+    interface SubjectListData {
+      items: Subject[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+    // ...
+  }
 
-interface Subject {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  icon: string;
-  is_active: boolean;
+  namespace RBAC {
+    // Menu 实体同样使用嵌套 meta
+    interface MenuMeta {
+      title: string;
+      i18nKey: string;
+      icon: string;
+      order: number;
+      hideInMenu: boolean;
+      href: string | null;
+    }
+    interface Menu {
+      id: number;
+      name: string;
+      routeKey?: string;
+      path: string;
+      meta: MenuMeta;
+      children?: Menu[];
+    }
+    // ...
+  }
+  
+  // 其他命名空间: Question, Material, ExamModule, ExamSession, Score, User, KnowledgePoint
 }
+```
 
-interface SubjectCreateRequest {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  icon?: string;
-}
+> 注意：Menu 类型使用嵌套 `meta: MenuMeta` 子对象存储 `title/i18nKey/icon/order` 等字段，而非将 `icon`、`sort_order` 等直接作为 Menu 顶层字段。`Exam.scoring_rules` 类型为 `Record<string, number>`（题型名→分值映射）。
 
-interface QuestionType {
-  id: number;
-  subject_id: string;
-  name: string;
-  display_name: string;
-  has_options: boolean;
-  has_sub_questions: boolean;
-  scoring_type: 'auto' | 'mixed';
-  default_score: number;
-  sort_order: number;
-}
+### 使用方式
 
-interface Question {
-  id: number;
-  subject_id: string;
-  type_id: number;
-  parent_id?: number;
-  title: string;
-  content?: object;
-  answer: string;
-  explanation?: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  score: number;
-  category?: string;
-  tags?: string[];
-}
+```typescript
+// 组件中引用类型
+import type { Exam } from '@/typings/api/exam';
 
-interface QuestionStats {
-  by_type: Record<string, number>;
-  by_difficulty: Record<string, number>;
-}
-
-type MaterialType = 'guide' | 'practice_task' | 'case_analysis';
-
-interface Material {
-  id: number;
-  subject_id: string;
-  type: MaterialType;
-  title: string;
-  content: string;
-  meta?: object;
-  summary?: string;
-  tags?: string[];
-  sort_order: number;
-}
-
-interface Exam {
-  id: number;
-  subject_id: string;
-  name: string;
-  description?: string;
-  duration: number;
-  question_rules: Record<string, { count: number; random?: boolean; fixed_ids?: number[] }>;
-  scoring_rules: Record<string, number>;
-  is_active: boolean;
-}
-
-interface ScoreStats {
-  average_score: number;
-  max_score: number;
-  min_score: number;
-  total_submissions: number;
-  score_distribution: Record<string, number>;
-}
-
-interface ScoreItem {
-  id: number;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  attempt_number: number;
-  total_score: number;
-  submitted_at: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  created_at: string;
-}
-
-interface Permission {
-  id: number;
-  code: string;
-  name: string;
-  description?: string;
-}
-
-interface Role {
-  id: number;
-  code: string;
-  name: string;
-  is_super: boolean;
-  is_active: boolean;
-  sort_order: number;
-  permissions?: Permission[];
-}
-
-interface Menu {
-  id: number;
-  parent_id: number | null;
-  name: string;
-  path: string;
-  icon?: string;
-  component?: string;
-  permission_code?: string;
-  sort_order: number;
-  children?: Menu[];
-}
-
-interface AdminDetail {
-  id: string;
-  name: string;
-  email: string;
-  role: {
-    code: string;
-    name: string;
-    is_super: boolean;
-  };
-  subjects: string[];
-}
+const subject: Exam.Subject.Subject = { ... };
+const list: Exam.Subject.SubjectListData = { items: [], total: 0, page: 1, page_size: 20 };
 ```
 
 ---

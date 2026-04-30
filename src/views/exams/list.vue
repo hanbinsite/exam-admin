@@ -45,7 +45,7 @@ interface QuestionRuleRow {
 }
 
 const ruleRows = ref<QuestionRuleRow[]>([]);
-const scoringRows = ref<{ type_id: string; score: number }[]>([]);
+const scoringRows = ref<{ type_id: string; comparison: string; case_sensitive: boolean }[]>([]);
 
 function resetForm() {
   form.name = '';
@@ -69,7 +69,7 @@ function removeRuleRow(index: number) {
 }
 
 function addScoringRow() {
-  scoringRows.value.push({ type_id: '', score: 2 });
+  scoringRows.value.push({ type_id: '', comparison: 'exact', case_sensitive: false });
 }
 
 function removeScoringRow(index: number) {
@@ -94,10 +94,14 @@ function buildQuestionRules() {
 }
 
 function buildScoringRules() {
-  const result: Record<string, number> = {};
+  const result: Record<string, Exam.ExamModule.ScoringRule> = {};
   for (const row of scoringRows.value) {
     if (row.type_id) {
-      result[row.type_id] = row.score;
+      const rule: Exam.ExamModule.ScoringRule = { comparison: row.comparison as 'exact' | 'contains' | 'normalized' };
+      if (row.comparison === 'exact') {
+        rule.case_sensitive = row.case_sensitive;
+      }
+      result[row.type_id] = rule;
     }
   }
   form.scoring_rules = result;
@@ -112,10 +116,11 @@ function parseQuestionRules(qRules: Record<string, Exam.ExamModule.QuestionRule>
   }));
 }
 
-function parseScoringRules(sRules: Record<string, number>) {
-  scoringRows.value = Object.entries(sRules || {}).map(([typeId, score]) => ({
+function parseScoringRules(sRules: Record<string, Exam.ExamModule.ScoringRule>) {
+  scoringRows.value = Object.entries(sRules || {}).map(([typeId, rule]) => ({
     type_id: typeId,
-    score
+    comparison: rule.comparison || 'exact',
+    case_sensitive: rule.case_sensitive ?? false
   }));
 }
 
@@ -321,8 +326,15 @@ onMounted(() => {
           <ElSelect v-model="row.type_id" placeholder="题型" class="w-150">
             <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="String(t.id)" />
           </ElSelect>
-          <ElInputNumber v-model="row.score" :min="0.5" :step="0.5" placeholder="每题分值" class="w-120" />
-          <span class="text-gray-500">分/题</span>
+          <ElSelect v-model="row.comparison" class="w-150">
+            <ElOption value="exact" label="精确匹配" />
+            <ElOption value="contains" label="包含匹配" />
+            <ElOption value="normalized" label="规范化匹配" />
+          </ElSelect>
+          <span v-if="row.comparison === 'exact'" class="flex items-center gap-4px">
+            <ElCheckbox v-model="row.case_sensitive" />
+            <span class="text-xs text-gray-500">区分大小写</span>
+          </span>
           <ElButton type="danger" link @click="removeScoringRow(idx)">删除</ElButton>
         </div>
         <ElButton type="primary" link @click="addScoringRow">+ 添加评分规则</ElButton>

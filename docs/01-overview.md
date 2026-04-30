@@ -13,12 +13,13 @@ exam-admin 是在线考试系统的管理后台，面向管理员提供题库管
 | 科目管理 | /subjects | 科目 CRUD + 统计 | `/subjects` |
 | 题型管理 | /question-types | 题型 CRUD（单选/多选/判断/填空/材料） | `/admin/question-types` |
 | 题库管理 | /questions | 题目 CRUD + 批量导入 + 统计 | `/admin/questions`, `/subjects/{id}/questions/stats` |
-| 学习资料 | /materials | 操指南/实操任务/案例分析 CRUD | `/admin/materials` |
-| 考试配置 | /exams | 考试配置 CRUD + 抽题规则 | `/admin/exams` |
+| 学习资料 | /materials | 操作指南/实操任务/案例分析 CRUD | `/admin/materials` |
+| 考试配置 | /exams | 考试配置 CRUD + 抽题规则 + 考试场次 | `/admin/exams`, `/admin/exams/{id}/sessions` |
 | 成绩统计 | /scores | 科目成绩统计 + 分数分布 + 分页列表 | `/admin/scores/stats`, `/admin/scores/list` |
-| 用户管理 | /users | 学生用户分页列表 | `/admin/users` |
-| RBAC权限 | /rbac | 角色/权限/菜单管理 + 科目授权 | `/admin/rbac/*` |
-| 管理员管理 | /admins | 管理员列表 + 角色分配 + 科目授权 | `/admin/rbac/admins/*` |
+| 用户管理 | /users | 学生用户分页列表 + 密码重置 | `/admin/users` |
+| 知识点管理 | /knowledge-points | 知识点树 CRUD + 题目关联 | `/admin/knowledge-points` |
+| RBAC权限 | /rbac | 角色/权限/菜单/管理员/科目授权 Tab | `/admin/rbac/*` |
+| 用户中心 | /user-center | 个人资料修改 + 修改密码 | `/admin/auth/me`, `/admin/auth/password` |
 
 ## Priorities (Phase 1)
 
@@ -28,11 +29,12 @@ exam-admin 是在线考试系统的管理后台，面向管理员提供题库管
 4. **题型管理** — 题目创建前需先定义题型
 5. **题库管理** — 核心功能，CRUD + 批量导入
 6. **学习资料** — 实操指南/案例分析管理
-7. **考试配置** — 考试项目配置 + 抽题规则
+7. **考试配置** — 考试项目配置 + 抽题规则 + 考试场次
 8. **成绩统计** — 分数分布可视化 + 分页列表
 9. **用户管理** — 学生用户列表查看
-10. **RBAC权限** — 角色/权限/菜单/科目授权管理（Phase 2）
-11. **管理员管理** — 管理员账号 + 角色分配（Phase 2）
+10. **知识点管理** — 知识点树 CRUD
+11. **RBAC权限** — 角色/权限/菜单/管理员/科目授权管理（Phase 2）
+12. **用户中心** — 个人资料修改 + 修改密码
 
 ## Architecture Context
 
@@ -69,7 +71,7 @@ sqlpub MySQL                  ← 数据库
 | Base URL | `https://exam-server.hanbin123.com/api/v1` |
 | 认证方式 | Admin JWT Bearer Token (`role=admin`) |
 | 响应格式 | `{ code: int, data: T, message: str }` |
-| Token 存储 | localStorage `admin_token` |
+| Token 存储 | localStorage（通过 localStg 工具封装） |
 | Token 有效期 | 7 天 (`JWT_EXPIRE_DAYS_ADMIN`) |
 
 ## RBAC 权限体系

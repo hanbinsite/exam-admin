@@ -1283,17 +1283,17 @@
 
 #### 角色管理
 
-| 方法 | 路径 | 认证 | 权限 |
-|------|------|------|------|
-| GET | `/admin/rbac/roles` | Admin JWT | 无 |
-| GET | `/admin/rbac/roles/{role_id}` | Admin JWT | 无 |
-| POST | `/admin/rbac/roles` | Admin JWT | `admin:manage` |
-| PUT | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` |
-| DELETE | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` |
-| GET | `/admin/rbac/roles/{role_code}/permissions` | Admin JWT | 无 |
-| POST | `/admin/rbac/roles/permissions` | Admin JWT | `admin:manage` |
-| GET | `/admin/rbac/roles/{role_code}/menus` | Admin JWT | 无 |
-| POST | `/admin/rbac/roles/menus` | Admin JWT | `admin:manage` |
+| 方法 | 路径 | 认证 | 权限 | 说明 |
+|------|------|------|------|------|
+| GET | `/admin/rbac/roles` | Admin JWT | 无 | 分页，支持 `includeInactive` / `page` / `pageSize` |
+| GET | `/admin/rbac/roles/{role_id}` | Admin JWT | 无 | |
+| POST | `/admin/rbac/roles` | Admin JWT | `admin:manage` | |
+| PUT | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` | |
+| DELETE | `/admin/rbac/roles/{role_id}` | Admin JWT | `admin:manage` | |
+| GET | `/admin/rbac/roles/{role_code}/permissions` | Admin JWT | 无 | |
+| POST | `/admin/rbac/roles/permissions` | Admin JWT | `admin:manage` | |
+| GET | `/admin/rbac/roles/{role_code}/menus` | Admin JWT | 无 | |
+| POST | `/admin/rbac/roles/menus` | Admin JWT | `admin:manage` | |
 
 #### 菜单管理
 
@@ -1306,11 +1306,11 @@
 
 #### 管理员与授权关系
 
-| 方法 | 路径 | 认证 | 权限 |
-|------|------|------|------|
-| GET | `/admin/rbac/admins` | Admin JWT | 无 |
-| GET | `/admin/rbac/admins/{admin_id}` | Admin JWT | 无 |
-| PUT | `/admin/rbac/admins/{admin_id}/role` | Admin JWT | `admin:manage` |
+| 方法 | 路径 | 认证 | 权限 | 说明 |
+|------|------|------|------|------|
+| GET | `/admin/rbac/admins` | Admin JWT | 无 | 分页，支持 `page` / `pageSize` |
+| GET | `/admin/rbac/admins/{admin_id}` | Admin JWT | 无 | |
+| PUT | `/admin/rbac/admins/{admin_id}/role` | Admin JWT | `admin:manage` | |
 | GET | `/admin/rbac/admins/{admin_id}/menus` | Admin JWT | 无 |
 | GET | `/admin/rbac/admins/{admin_id}/subjects` | Admin JWT | 无 |
 | PUT | `/admin/rbac/admins/{admin_id}/deactivate` | Admin JWT | `admin:manage` |
