@@ -6,11 +6,15 @@ import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchActivateUser,
   fetchAssignUserCode,
+  fetchAssignUserSubject,
   fetchCreateUser,
   fetchDeleteUser,
+  fetchRemoveUserSubject,
   fetchResetUserPassword,
+  fetchSubjectList,
   fetchUserDetail,
-  fetchUserList
+  fetchUserList,
+  fetchUserSubjects
 } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
@@ -35,6 +39,12 @@ const assignCodeInput = ref('');
 const detailDialogVisible = ref(false);
 const detailLoading = ref(false);
 const detailUser = ref<Exam.User.UserDetail | null>(null);
+
+const subjectDialogVisible = ref(false);
+const subjectSubmitting = ref(false);
+const currentUserForSubject = ref<Exam.User.User | null>(null);
+const currentUserSubjects = ref<string[]>([]);
+const allSubjects = ref<Exam.Subject.Subject[]>([]);
 
 const createDialogVisible = ref(false);
 const createSubmitting = ref(false);
@@ -196,6 +206,41 @@ async function handleViewDetail(row: Exam.User.User) {
   detailLoading.value = false;
 }
 
+async function handleSubjectManage(row: Exam.User.User) {
+  currentUserForSubject.value = row;
+  const [userSubjectsRes, subjectListRes] = await Promise.all([fetchUserSubjects(row.id), fetchSubjectList()]);
+  if (!userSubjectsRes.error && userSubjectsRes.data) {
+    currentUserSubjects.value = userSubjectsRes.data;
+  } else {
+    currentUserSubjects.value = [];
+  }
+  if (!subjectListRes.error && subjectListRes.data) {
+    allSubjects.value = subjectListRes.data.items;
+  }
+  subjectDialogVisible.value = true;
+}
+
+async function handleSubjectChange() {
+  if (!currentUserForSubject.value) return;
+  subjectSubmitting.value = true;
+  try {
+    const existing = (await fetchUserSubjects(currentUserForSubject.value.id)).data || [];
+    const toAdd = currentUserSubjects.value.filter(s => !existing.includes(s));
+    const toRemove = existing.filter((s: string) => !currentUserSubjects.value.includes(s));
+
+    await Promise.all([
+      ...toAdd.map(subjectId => fetchAssignUserSubject(currentUserForSubject.value!.id, subjectId)),
+      ...toRemove.map(subjectId => fetchRemoveUserSubject(currentUserForSubject.value!.id, subjectId))
+    ]);
+    ElMessage.success('科目绑定更新成功');
+    subjectDialogVisible.value = false;
+  } catch {
+    ElMessage.error('科目绑定更新失败');
+  } finally {
+    subjectSubmitting.value = false;
+  }
+}
+
 onMounted(loadUsers);
 </script>
 
@@ -256,6 +301,15 @@ onMounted(loadUsers);
         <ElTableColumn label="操作" width="290" align="center">
           <template #default="{ row }">
             <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
+            <ElButton
+              v-if="hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
+              type="success"
+              link
+              size="small"
+              @click="handleSubjectManage(row)"
+            >
+              科目
+            </ElButton>
             <ElButton
               v-if="!row.is_active && hasAuth(PERMISSION_CODES.ADMIN_MANAGE)"
               type="success"
@@ -387,6 +441,21 @@ onMounted(loadUsers);
       </div>
       <template #footer>
         <ElButton @click="detailDialogVisible = false">关闭</ElButton>
+      </template>
+    </ElDialog>
+
+    <ElDialog v-model="subjectDialogVisible" title="科目绑定" width="450px">
+      <div class="mb-12px text-gray-500">
+        用户：{{ currentUserForSubject?.name }} ({{ currentUserForSubject?.email }})
+      </div>
+      <ElCheckboxGroup v-model="currentUserSubjects">
+        <ElCheckbox v-for="s in allSubjects" :key="s.id" :value="s.id" class="mb-8px w-full">
+          {{ s.name }}
+        </ElCheckbox>
+      </ElCheckboxGroup>
+      <template #footer>
+        <ElButton @click="subjectDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="subjectSubmitting" @click="handleSubjectChange">提交</ElButton>
       </template>
     </ElDialog>
   </div>
