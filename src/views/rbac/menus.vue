@@ -163,7 +163,7 @@ onMounted(loadData);
 </script>
 
 <template>
-  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
+  <div class="min-h-500px flex-col-stretch gap-16px overflow-y-auto">
     <ElCard>
       <template #header>
         <div class="flex items-center justify-between">

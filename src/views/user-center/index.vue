@@ -97,7 +97,7 @@ onMounted(loadProfile);
     <ElCard class="card-wrapper">
       <ElTabs v-model="activeTab">
         <ElTabPane label="个人信息" name="profile">
-          <ElForm v-loading="profileLoading" :model="profileForm" label-width="100px" style="max-width: 500px">
+          <ElForm v-loading="profileLoading" :model="profileForm" label-width="100px" class="form-container">
             <ElFormItem label="姓名">
               <ElInput v-model="profileForm.name" placeholder="请输入姓名" />
             </ElFormItem>
@@ -125,7 +125,7 @@ onMounted(loadProfile);
         </ElTabPane>
 
         <ElTabPane label="修改密码" name="password">
-          <ElForm v-loading="passwordLoading" :model="passwordForm" label-width="100px" style="max-width: 500px">
+          <ElForm v-loading="passwordLoading" :model="passwordForm" label-width="100px" class="form-container">
             <ElFormItem label="当前密码">
               <ElInput v-model="passwordForm.old_password" type="password" show-password placeholder="请输入当前密码" />
             </ElFormItem>
@@ -150,4 +150,8 @@ onMounted(loadProfile);
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.form-container {
+  max-width: 500px;
+}
+</style>

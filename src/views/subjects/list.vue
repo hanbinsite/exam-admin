@@ -12,6 +12,9 @@ const { hasAuth } = useAuth();
 
 const loading = ref(false);
 const subjects = ref<Exam.Subject.Subject[]>([]);
+const total = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(20);
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增科目');
 const submitting = ref(false);
@@ -44,11 +47,23 @@ function resetForm() {
 
 async function loadSubjects() {
   loading.value = true;
-  const { data, error } = await fetchSubjectList();
+  const { data, error } = await fetchSubjectList(currentPage.value, pageSize.value);
   if (!error && data) {
     subjects.value = data.items;
+    total.value = data.total;
   }
   loading.value = false;
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page;
+  loadSubjects();
+}
+
+function handleSizeChange(size: number) {
+  pageSize.value = size;
+  currentPage.value = 1;
+  loadSubjects();
 }
 
 function handleAdd() {
@@ -174,6 +189,16 @@ onMounted(loadSubjects);
           </template>
         </ElTableColumn>
       </ElTable>
+      <div class="mt-16px flex justify-end">
+        <ElPagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </ElCard>
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="500px" @close="resetForm">

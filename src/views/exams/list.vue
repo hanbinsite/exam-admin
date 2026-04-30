@@ -211,7 +211,7 @@ async function handleDelete(row: Exam.ExamModule.ExamConfig) {
 }
 
 function handleViewSessions(row: Exam.ExamModule.ExamConfig) {
-  router.push({ path: '/exams/sessions', query: { subjectId: examStore.currentSubjectId, examId: String(row.id) } });
+  router.push({ name: 'exams_sessions', query: { subjectId: examStore.currentSubjectId, examId: String(row.id) } });
 }
 
 onMounted(() => {
@@ -228,7 +228,7 @@ onMounted(() => {
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
         <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
@@ -303,11 +303,11 @@ onMounted(() => {
 
         <ElDivider content-position="left">抽题规则</ElDivider>
         <div v-for="(row, idx) in ruleRows" :key="idx" class="mb-8px flex items-center gap-8px">
-          <ElSelect v-model="row.type_id" placeholder="题型" style="width: 150px">
+          <ElSelect v-model="row.type_id" placeholder="题型" class="w-150">
             <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="String(t.id)" />
           </ElSelect>
-          <ElInputNumber v-model="row.count" :min="1" placeholder="数量" style="width: 120px" />
-          <ElSelect v-model="row.random" style="width: 100px">
+          <ElInputNumber v-model="row.count" :min="1" placeholder="数量" class="w-120" />
+          <ElSelect v-model="row.random" class="w-100">
             <ElOption :value="true" label="随机" />
             <ElOption :value="false" label="固定" />
           </ElSelect>
@@ -318,10 +318,10 @@ onMounted(() => {
 
         <ElDivider content-position="left">评分规则</ElDivider>
         <div v-for="(row, idx) in scoringRows" :key="idx" class="mb-8px flex items-center gap-8px">
-          <ElSelect v-model="row.type_id" placeholder="题型" style="width: 150px">
+          <ElSelect v-model="row.type_id" placeholder="题型" class="w-150">
             <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="String(t.id)" />
           </ElSelect>
-          <ElInputNumber v-model="row.score" :min="0.5" :step="0.5" placeholder="每题分值" style="width: 120px" />
+          <ElInputNumber v-model="row.score" :min="0.5" :step="0.5" placeholder="每题分值" class="w-120" />
           <span class="text-gray-500">分/题</span>
           <ElButton type="danger" link @click="removeScoringRow(idx)">删除</ElButton>
         </div>
@@ -335,4 +335,20 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-select {
+  width: 200px;
+}
+
+.w-150 {
+  width: 150px;
+}
+
+.w-120 {
+  width: 120px;
+}
+
+.w-100 {
+  width: 100px;
+}
+</style>

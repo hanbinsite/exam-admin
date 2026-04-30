@@ -37,7 +37,7 @@ declare module "@elegant-router/types" {
     "dashboard": "/dashboard";
     "exams": "/exams";
     "exams_list": "/exams/list";
-    "exams_sessions": "/exams/sessions/:examId";
+    "exams_sessions": "/exams/sessions";
     "iframe-page": "/iframe-page/:url";
     "knowledge-points": "/knowledge-points";
     "knowledge-points_list": "/knowledge-points/list";

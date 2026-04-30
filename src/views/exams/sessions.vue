@@ -100,16 +100,11 @@ onMounted(() => {
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
         <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
       <span class="ml-16px text-16px font-medium">考试：</span>
-      <ElSelect
-        v-model="currentExamId"
-        placeholder="选择考试"
-        style="width: 200px"
-        :disabled="!examStore.currentSubjectId"
-      >
+      <ElSelect v-model="currentExamId" placeholder="选择考试" class="w-select" :disabled="!examStore.currentSubjectId">
         <ElOption v-for="e in exams" :key="e.id" :label="e.name" :value="e.id" />
       </ElSelect>
     </div>
@@ -183,4 +178,8 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-select {
+  width: 200px;
+}
+</style>

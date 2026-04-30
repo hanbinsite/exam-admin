@@ -68,7 +68,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       },
       {
         name: 'exams_sessions',
-        path: '/exams/sessions/:examId',
+        path: '/exams/sessions',
         component: 'view.exams_sessions',
         meta: {
           title: 'exams_sessions',

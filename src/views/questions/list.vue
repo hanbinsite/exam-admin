@@ -391,7 +391,7 @@ onMounted(() => {
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex flex-wrap items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
         <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
       <template v-if="stats">
@@ -420,37 +420,19 @@ onMounted(() => {
               v-model="searchKeyword"
               placeholder="搜索题目"
               clearable
-              style="width: 180px"
+              class="w-180"
               @clear="handleSearch"
               @keyup.enter="handleSearch"
             />
-            <ElSelect
-              v-model="filterTypeId"
-              placeholder="题型筛选"
-              clearable
-              style="width: 140px"
-              @change="handleSearch"
-            >
+            <ElSelect v-model="filterTypeId" placeholder="题型筛选" clearable class="w-140" @change="handleSearch">
               <ElOption v-for="t in questionTypes" :key="t.id" :label="t.display_name" :value="t.id" />
             </ElSelect>
-            <ElSelect
-              v-model="filterDifficulty"
-              placeholder="难度筛选"
-              clearable
-              style="width: 120px"
-              @change="handleSearch"
-            >
+            <ElSelect v-model="filterDifficulty" placeholder="难度筛选" clearable class="w-120" @change="handleSearch">
               <ElOption label="简单" value="easy" />
               <ElOption label="中等" value="medium" />
               <ElOption label="困难" value="hard" />
             </ElSelect>
-            <ElSelect
-              v-model="filterCategory"
-              placeholder="分类筛选"
-              clearable
-              style="width: 140px"
-              @change="handleSearch"
-            >
+            <ElSelect v-model="filterCategory" placeholder="分类筛选" clearable class="w-140" @change="handleSearch">
               <ElOption v-for="c in categories" :key="c" :label="c" :value="c" />
             </ElSelect>
             <ElButton v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)" @click="handleImport">批量导入</ElButton>
@@ -663,4 +645,20 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-select {
+  width: 200px;
+}
+
+.w-180 {
+  width: 180px;
+}
+
+.w-140 {
+  width: 140px;
+}
+
+.w-120 {
+  width: 120px;
+}
+</style>

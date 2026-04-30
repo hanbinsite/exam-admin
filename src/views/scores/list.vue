@@ -135,7 +135,7 @@ onMounted(() => {
   <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
-      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+      <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
         <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
       </ElSelect>
     </div>
@@ -159,7 +159,7 @@ onMounted(() => {
       <template #header>
         <p>分数分布</p>
       </template>
-      <div class="flex items-end gap-16px" style="height: 160px">
+      <div class="dist-chart flex items-end gap-16px">
         <div v-for="seg in distributionSegments" :key="seg.label" class="flex flex-col flex-1 items-center">
           <div
             class="w-full rounded-t bg-blue-500 transition-all"
@@ -202,4 +202,12 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-select {
+  width: 200px;
+}
+
+.dist-chart {
+  height: 160px;
+}
+</style>

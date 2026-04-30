@@ -92,7 +92,7 @@ onMounted(loadDashboard);
       <template #header>
         <p>科目概览</p>
       </template>
-      <div ref="chartRef" style="height: 300px" />
+      <div ref="chartRef" class="chart-container" />
     </ElCard>
 
     <ElCard shadow="hover">
@@ -124,4 +124,8 @@ onMounted(loadDashboard);
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.chart-container {
+  height: 300px;
+}
+</style>

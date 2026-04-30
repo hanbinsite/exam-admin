@@ -214,7 +214,7 @@ onMounted(() => {
     <ElCard>
       <div class="mb-16px flex items-center gap-12px">
         <span class="text-16px font-medium">科目：</span>
-        <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" style="width: 200px">
+        <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
           <ElOption v-for="s in examStore.subjects" :key="s.id" :label="s.name" :value="s.id" />
         </ElSelect>
         <div class="ml-auto flex gap-8px">
@@ -313,4 +313,8 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-select {
+  width: 200px;
+}
+</style>

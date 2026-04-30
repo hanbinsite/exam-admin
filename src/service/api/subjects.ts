@@ -1,8 +1,9 @@
 import { request } from '../request';
 
-export function fetchSubjectList() {
+export function fetchSubjectList(page?: number, pageSize?: number) {
   return request<Exam.Subject.SubjectListData>({
-    url: '/subjects'
+    url: '/subjects',
+    params: page !== undefined && pageSize !== undefined ? { page, pageSize } : undefined
   });
 }
 

@@ -210,7 +210,7 @@ onMounted(loadUsers);
               v-model="searchKeyword"
               placeholder="搜索姓名/邮箱"
               clearable
-              style="width: 200px"
+              class="w-search"
               @clear="handleSearch"
               @keyup.enter="handleSearch"
             />
@@ -392,4 +392,8 @@ onMounted(loadUsers);
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.w-search {
+  width: 200px;
+}
+</style>
