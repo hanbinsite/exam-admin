@@ -213,7 +213,7 @@ export function fetchAssignUserSubject(userId: string, subjectId: string) {
   return request<null>({
     url: '/admin/rbac/user-subjects',
     method: 'post',
-    data: { user_id: userId, subject_id: subjectId }
+    data: { user_id: userId, subject_id: subjectId, granted_at: new Date().toISOString() }
   });
 }
 
