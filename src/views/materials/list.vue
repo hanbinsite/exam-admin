@@ -91,7 +91,7 @@ async function loadAvailableTypes() {
   try {
     const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
       page: 1,
-      pageSize: 1000
+      pageSize: 100
     });
     if (!error && data?.items) {
       const typeSet = new Set<string>();
