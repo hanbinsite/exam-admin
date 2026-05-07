@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { VueDraggable } from 'vue-draggable-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchBatchImportQuestions,
@@ -117,7 +118,28 @@ function addOption() {
 }
 
 function removeOption(index: number) {
+  const removedKey = optionItems.value[index]?.key;
   optionItems.value.splice(index, 1);
+  reorderKeys();
+  if (removedKey) {
+    correctAnswer.value = correctAnswer.value === removedKey ? '' : correctAnswer.value;
+    correctAnswerMulti.value = correctAnswerMulti.value.filter(k => k !== removedKey);
+  }
+}
+
+function reorderKeys() {
+  const keys = 'ABCDEFGH'.split('');
+  const oldToNew: Record<string, string> = {};
+  optionItems.value.forEach((opt, idx) => {
+    oldToNew[opt.key] = keys[idx] || String(idx);
+    opt.key = keys[idx] || String(idx);
+  });
+  correctAnswer.value = oldToNew[correctAnswer.value] || correctAnswer.value;
+  correctAnswerMulti.value = correctAnswerMulti.value.map(k => oldToNew[k] || k);
+}
+
+function handleOptionDrag() {
+  reorderKeys();
 }
 
 function buildContentFromOptions() {
@@ -520,11 +542,14 @@ onMounted(() => {
 
         <ElFormItem v-if="currentTypeName === 'choice' || currentTypeName === 'multi_choice'" label="选项">
           <div class="w-full">
-            <div v-for="(opt, idx) in optionItems" :key="idx" class="mb-8px flex items-center gap-8px">
-              <ElTag size="small">{{ opt.key }}</ElTag>
-              <ElInput v-model="opt.text" placeholder="选项内容" class="flex-1" />
-              <ElButton type="danger" link @click="removeOption(idx)">删除</ElButton>
-            </div>
+            <VueDraggable v-model="optionItems" :animation="150" handle=".drag-handle" @sort="handleOptionDrag">
+              <div v-for="(opt, idx) in optionItems" :key="opt.key" class="mb-8px flex items-center gap-8px">
+                <span class="drag-handle cursor-move select-none text-gray-400 line-height-1">⋮⋮</span>
+                <ElTag size="small">{{ opt.key }}</ElTag>
+                <ElInput v-model="opt.text" placeholder="选项内容" class="flex-1" />
+                <ElButton type="danger" link @click="removeOption(idx)">删除</ElButton>
+              </div>
+            </VueDraggable>
             <ElButton type="primary" link @click="addOption">+ 添加选项</ElButton>
           </div>
         </ElFormItem>
