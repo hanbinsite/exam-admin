@@ -120,11 +120,11 @@ function addOption() {
 function removeOption(index: number) {
   const removedKey = optionItems.value[index]?.key;
   optionItems.value.splice(index, 1);
-  reorderKeys();
   if (removedKey) {
     correctAnswer.value = correctAnswer.value === removedKey ? '' : correctAnswer.value;
     correctAnswerMulti.value = correctAnswerMulti.value.filter(k => k !== removedKey);
   }
+  reorderKeys();
 }
 
 function reorderKeys() {
