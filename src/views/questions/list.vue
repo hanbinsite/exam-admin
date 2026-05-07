@@ -388,7 +388,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex-col-stretch gap-16px overflow-y-auto p-16px">
+  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
     <div class="flex flex-wrap items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
       <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
@@ -411,7 +411,7 @@ onMounted(() => {
       </template>
     </div>
 
-    <ElCard class="card-wrapper">
+    <ElCard class="card-wrapper sm:flex-1-hidden">
       <template #header>
         <div class="flex items-center justify-between">
           <p>题库管理</p>
@@ -447,61 +447,63 @@ onMounted(() => {
           </div>
         </div>
       </template>
-      <ElTable v-loading="loading" :data="questions" border stripe max-height="calc(100vh - 280px)">
-        <ElTableColumn prop="id" label="ID" width="70" />
-        <ElTableColumn label="题型" width="100" align="center">
-          <template #default="{ row }">
-            <ElTag size="small">{{ row.type?.display_name || row.type?.name || '-' }}</ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn label="题干" min-width="300">
-          <template #default="{ row }">
-            {{ truncate(row.title) }}
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="category" label="分类" width="120" />
-        <ElTableColumn label="难度" width="80" align="center">
-          <template #default="{ row }">
-            <ElTag :type="difficultyMap[row.difficulty]?.type" size="small">
-              {{ difficultyMap[row.difficulty]?.label || row.difficulty }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
-        <ElTableColumn prop="score" label="分值" width="70" align="center" />
-        <ElTableColumn prop="answer" label="答案" width="80" align="center" />
-        <ElTableColumn label="操作" width="200" align="center" fixed="right">
-          <template #default="{ row }">
-            <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
-            <ElButton
-              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
-              type="primary"
-              link
-              size="small"
-              @click="handleEdit(row)"
-            >
-              编辑
-            </ElButton>
-            <ElButton
-              v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
-              type="danger"
-              link
-              size="small"
-              @click="handleDelete(row)"
-            >
-              删除
-            </ElButton>
-          </template>
-        </ElTableColumn>
-      </ElTable>
-      <div class="mt-16px flex justify-end">
-        <ElPagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          layout="total, prev, pager, next, sizes"
-          @current-change="handlePageChange"
-          @size-change="handleSizeChange"
-        />
+      <div class="flex flex-col flex-1 overflow-hidden">
+        <ElTable v-loading="loading" :data="questions" border stripe class="flex-1" height="100%">
+          <ElTableColumn prop="id" label="ID" width="70" />
+          <ElTableColumn label="题型" width="100" align="center">
+            <template #default="{ row }">
+              <ElTag size="small">{{ row.type?.display_name || row.type?.name || '-' }}</ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn label="题干" min-width="300">
+            <template #default="{ row }">
+              {{ truncate(row.title) }}
+            </template>
+          </ElTableColumn>
+          <ElTableColumn prop="category" label="分类" width="120" />
+          <ElTableColumn label="难度" width="80" align="center">
+            <template #default="{ row }">
+              <ElTag :type="difficultyMap[row.difficulty]?.type" size="small">
+                {{ difficultyMap[row.difficulty]?.label || row.difficulty }}
+              </ElTag>
+            </template>
+          </ElTableColumn>
+          <ElTableColumn prop="score" label="分值" width="70" align="center" />
+          <ElTableColumn prop="answer" label="答案" width="80" align="center" />
+          <ElTableColumn label="操作" width="200" align="center" fixed="right">
+            <template #default="{ row }">
+              <ElButton type="info" link size="small" @click="handleViewDetail(row)">详情</ElButton>
+              <ElButton
+                v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+                type="primary"
+                link
+                size="small"
+                @click="handleEdit(row)"
+              >
+                编辑
+              </ElButton>
+              <ElButton
+                v-if="hasAuth(PERMISSION_CODES.QUESTION_MANAGE)"
+                type="danger"
+                link
+                size="small"
+                @click="handleDelete(row)"
+              >
+                删除
+              </ElButton>
+            </template>
+          </ElTableColumn>
+        </ElTable>
+        <div class="flex flex-shrink-0 justify-end py-8px">
+          <ElPagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="total"
+            layout="total, prev, pager, next, sizes"
+            @current-change="handlePageChange"
+            @size-change="handleSizeChange"
+          />
+        </div>
       </div>
     </ElCard>
 
