@@ -388,7 +388,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-500px flex-col-stretch gap-16px overflow-hidden">
+  <div class="h-full flex-col-stretch gap-16px overflow-y-auto p-16px">
     <div class="flex flex-wrap items-center gap-12px">
       <span class="text-16px font-medium">科目：</span>
       <ElSelect v-model="examStore.currentSubjectId" placeholder="选择科目" class="w-select">
@@ -447,7 +447,7 @@ onMounted(() => {
           </div>
         </div>
       </template>
-      <ElTable v-loading="loading" :data="questions" border stripe>
+      <ElTable v-loading="loading" :data="questions" border stripe max-height="calc(100vh - 280px)">
         <ElTableColumn prop="id" label="ID" width="70" />
         <ElTableColumn label="题型" width="100" align="center">
           <template #default="{ row }">
