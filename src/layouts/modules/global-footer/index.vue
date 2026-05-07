@@ -11,7 +11,7 @@ defineOptions({
       target="_blank"
       rel="noopener noreferrer"
     >
-      Copyright MIT © 2021 Bin-Exam
+      Copyright MIT © 2026 Bin-Exam
     </a>
   </DarkModeContainer>
 </template>
