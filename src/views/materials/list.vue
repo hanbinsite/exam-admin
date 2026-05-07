@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
@@ -21,7 +21,7 @@ const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
 const viewMode = ref<'table' | 'card'>('table');
 const contentPreview = ref(false);
-const activeTab = ref<Exam.Material.MaterialType>('guide');
+const activeTab = ref('');
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const dialogVisible = ref(false);
 const dialogTitle = ref('新增资料');
@@ -29,9 +29,12 @@ const submitting = ref(false);
 const formRef = ref<FormInstance>();
 const tagInput = ref('');
 
+const availableTypes = ref<Exam.Material.MaterialType[]>([]);
+const loadingTypes = ref(false);
+
 const form = reactive<Exam.Material.MaterialCreateRequest>({
   subject_id: '',
-  type: 'guide',
+  type: '',
   title: '',
   content: '',
   meta: undefined,
@@ -44,20 +47,32 @@ const editingId = ref<number | null>(null);
 const materialDetailVisible = ref(false);
 const currentMaterialDetail = ref<Exam.Material.Material | null>(null);
 
-const typeLabels: Record<Exam.Material.MaterialType, string> = {
+const knownTypeLabels: Record<string, string> = {
   guide: '实操指南',
   practice_task: '实操任务',
-  case_analysis: '案例分析'
+  case_analysis: '案例分析',
+  operation: '实操'
 };
+
+function getTypeLabel(type: Exam.Material.MaterialType) {
+  return knownTypeLabels[type] || type;
+}
+
+const tabOptions = computed(() => {
+  const tabs = availableTypes.value.map(t => ({ name: t, label: getTypeLabel(t) }));
+  return [{ name: '', label: '全部' }, ...tabs];
+});
 
 const rules: FormRules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-  content: [{ required: true, message: '请输入内容', trigger: 'blur' }]
+  content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择类型', trigger: 'change' }]
 };
 
 function resetForm() {
   form.title = '';
   form.content = '';
+  form.type = '';
   form.meta = undefined;
   form.summary = '';
   form.tags = [];
@@ -67,14 +82,37 @@ function resetForm() {
   formRef.value?.resetFields();
 }
 
+async function loadAvailableTypes() {
+  if (!examStore.currentSubjectId) {
+    availableTypes.value = [];
+    return;
+  }
+  loadingTypes.value = true;
+  const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
+    page: 1,
+    pageSize: 200
+  });
+  if (!error && data) {
+    const typeSet = new Set<string>();
+    data.items.forEach(item => {
+      if (item.type) typeSet.add(item.type);
+    });
+    availableTypes.value = Array.from(typeSet) as Exam.Material.MaterialType[];
+  }
+  loadingTypes.value = false;
+}
+
 async function loadMaterials() {
   if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
+  const params: { page: number; pageSize: number; type?: Exam.Material.MaterialType } = {
     page: pagination.page,
-    pageSize: pagination.pageSize,
-    type: activeTab.value
-  });
+    pageSize: pagination.pageSize
+  };
+  if (activeTab.value) {
+    params.type = activeTab.value;
+  }
+  const { data, error } = await fetchMaterialList(examStore.currentSubjectId, params);
   if (!error && data) {
     materials.value = data.items;
     pagination.total = data.total;
@@ -82,7 +120,17 @@ async function loadMaterials() {
   loading.value = false;
 }
 
-watch([() => examStore.currentSubjectId, activeTab], () => {
+watch(
+  () => examStore.currentSubjectId,
+  () => {
+    activeTab.value = '';
+    pagination.page = 1;
+    loadAvailableTypes();
+    loadMaterials();
+  }
+);
+
+watch(activeTab, () => {
   pagination.page = 1;
   loadMaterials();
 });
@@ -90,8 +138,7 @@ watch([() => examStore.currentSubjectId, activeTab], () => {
 function handleAdd() {
   resetForm();
   form.subject_id = examStore.currentSubjectId;
-  form.type = activeTab.value;
-  dialogTitle.value = `新增${typeLabels[activeTab.value]}`;
+  dialogTitle.value = '新增资料';
   dialogVisible.value = true;
 }
 
@@ -105,7 +152,7 @@ function handleEdit(row: Exam.Material.Material) {
   form.summary = row.summary || '';
   form.tags = row.tags || [];
   form.sort_order = row.sort_order;
-  dialogTitle.value = `编辑${typeLabels[row.type]}`;
+  dialogTitle.value = `编辑${getTypeLabel(row.type)}`;
   dialogVisible.value = true;
 }
 
@@ -120,6 +167,7 @@ async function handleSubmit() {
       if (!error) {
         ElMessage.success('更新成功');
         dialogVisible.value = false;
+        loadAvailableTypes();
         loadMaterials();
       }
     } else {
@@ -127,6 +175,7 @@ async function handleSubmit() {
       if (!error) {
         ElMessage.success('创建成功');
         dialogVisible.value = false;
+        loadAvailableTypes();
         loadMaterials();
       }
     }
@@ -140,6 +189,7 @@ async function handleDelete(row: Exam.Material.Material) {
   const { error } = await fetchDeleteMaterial(row.id);
   if (!error) {
     ElMessage.success('删除成功');
+    loadAvailableTypes();
     loadMaterials();
   }
 }
@@ -181,6 +231,7 @@ onMounted(() => {
     examStore.loadSubjects();
   }
   if (examStore.currentSubjectId) {
+    loadAvailableTypes();
     loadMaterials();
   }
 });
@@ -199,9 +250,7 @@ onMounted(() => {
       <template #header>
         <div class="flex items-center justify-between">
           <ElTabs v-model="activeTab">
-            <ElTabPane label="实操指南" name="guide" />
-            <ElTabPane label="实操任务" name="practice_task" />
-            <ElTabPane label="案例分析" name="case_analysis" />
+            <ElTabPane v-for="tab in tabOptions" :key="tab.name" :label="tab.label" :name="tab.name" />
           </ElTabs>
           <div class="flex gap-8px">
             <ElButtonGroup size="small">
@@ -214,7 +263,7 @@ onMounted(() => {
               :disabled="!examStore.currentSubjectId"
               @click="handleAdd"
             >
-              新增{{ typeLabels[activeTab] }}
+              新增资料
             </ElButton>
           </div>
         </div>
@@ -222,6 +271,11 @@ onMounted(() => {
       <ElTable v-if="viewMode === 'table'" v-loading="loading" :data="materials" border stripe>
         <ElTableColumn prop="id" label="ID" width="80" />
         <ElTableColumn prop="title" label="标题" min-width="200" />
+        <ElTableColumn label="类型" width="120">
+          <template #default="{ row }">
+            <ElTag>{{ getTypeLabel(row.type) }}</ElTag>
+          </template>
+        </ElTableColumn>
         <ElTableColumn prop="summary" label="摘要" min-width="200" show-overflow-tooltip />
         <ElTableColumn label="标签" width="200">
           <template #default="{ row }">
@@ -258,7 +312,7 @@ onMounted(() => {
           <template #header>
             <div class="flex items-center justify-between">
               <ElText truncated class="font-medium">{{ item.title }}</ElText>
-              <ElTag size="small">{{ typeLabels[item.type] || item.type }}</ElTag>
+              <ElTag size="small">{{ getTypeLabel(item.type) }}</ElTag>
             </div>
           </template>
           <p class="mb-8px text-sm text-gray-500">{{ item.summary || '暂无摘要' }}</p>
@@ -289,6 +343,15 @@ onMounted(() => {
 
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @close="resetForm">
       <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
+        <ElFormItem label="类型" prop="type">
+          <ElSelect v-model="form.type" placeholder="选择或输入资料类型" filterable allow-create class="w-full">
+            <ElOption v-for="t in availableTypes" :key="t" :label="getTypeLabel(t)" :value="t" />
+            <ElOption label="实操指南" value="guide" />
+            <ElOption label="实操任务" value="practice_task" />
+            <ElOption label="案例分析" value="case_analysis" />
+            <ElOption label="实操" value="operation" />
+          </ElSelect>
+        </ElFormItem>
         <ElFormItem label="标题" prop="title">
           <ElInput v-model="form.title" placeholder="资料标题" />
         </ElFormItem>
@@ -342,7 +405,7 @@ onMounted(() => {
           <ElDescriptionsItem label="ID">{{ currentMaterialDetail.id }}</ElDescriptionsItem>
           <ElDescriptionsItem label="标题">{{ currentMaterialDetail.title }}</ElDescriptionsItem>
           <ElDescriptionsItem label="类型">
-            {{ typeLabels[currentMaterialDetail.type] || currentMaterialDetail.type }}
+            {{ getTypeLabel(currentMaterialDetail.type) }}
           </ElDescriptionsItem>
           <ElDescriptionsItem label="科目">{{ currentMaterialDetail.subject_id }}</ElDescriptionsItem>
           <ElDescriptionsItem label="摘要">{{ currentMaterialDetail.summary || '-' }}</ElDescriptionsItem>

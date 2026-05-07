@@ -213,7 +213,7 @@ declare namespace Exam {
   }
 
   namespace Material {
-    type MaterialType = 'guide' | 'practice_task' | 'case_analysis';
+    type MaterialType = string;
 
     interface Material {
       id: number;
