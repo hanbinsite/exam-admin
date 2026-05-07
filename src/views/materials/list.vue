@@ -88,16 +88,20 @@ async function loadAvailableTypes() {
     return;
   }
   loadingTypes.value = true;
-  const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
-    page: 1,
-    pageSize: 200
-  });
-  if (!error && data) {
-    const typeSet = new Set<string>();
-    data.items.forEach(item => {
-      if (item.type) typeSet.add(item.type);
+  try {
+    const { data, error } = await fetchMaterialList(examStore.currentSubjectId, {
+      page: 1,
+      pageSize: 1000
     });
-    availableTypes.value = Array.from(typeSet) as Exam.Material.MaterialType[];
+    if (!error && data?.items) {
+      const typeSet = new Set<string>();
+      data.items.forEach(item => {
+        if (item.type) typeSet.add(item.type);
+      });
+      availableTypes.value = Array.from(typeSet) as Exam.Material.MaterialType[];
+    }
+  } catch {
+    availableTypes.value = [];
   }
   loadingTypes.value = false;
 }
@@ -116,17 +120,31 @@ async function loadMaterials() {
   if (!error && data) {
     materials.value = data.items;
     pagination.total = data.total;
+    if (!activeTab.value && data.items?.length) {
+      const typeSet = new Set<string>();
+      data.items.forEach(item => {
+        if (item.type) typeSet.add(item.type);
+      });
+      const types = Array.from(typeSet) as Exam.Material.MaterialType[];
+      if (types.length > availableTypes.value.length) {
+        availableTypes.value = types;
+      }
+    }
   }
   loading.value = false;
+}
+
+async function onSubjectChange() {
+  activeTab.value = '';
+  pagination.page = 1;
+  await loadAvailableTypes();
+  loadMaterials();
 }
 
 watch(
   () => examStore.currentSubjectId,
   () => {
-    activeTab.value = '';
-    pagination.page = 1;
-    loadAvailableTypes();
-    loadMaterials();
+    onSubjectChange();
   }
 );
 
@@ -231,8 +249,7 @@ onMounted(() => {
     examStore.loadSubjects();
   }
   if (examStore.currentSubjectId) {
-    loadAvailableTypes();
-    loadMaterials();
+    onSubjectChange();
   }
 });
 </script>
