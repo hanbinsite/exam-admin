@@ -411,7 +411,7 @@ onMounted(() => {
       </template>
     </div>
 
-    <ElCard class="card-wrapper sm:flex-1-hidden">
+    <ElCard class="card-wrapper">
       <template #header>
         <div class="flex items-center justify-between">
           <p>题库管理</p>
