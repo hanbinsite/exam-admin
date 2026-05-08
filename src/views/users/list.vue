@@ -61,11 +61,21 @@ const createRules: FormRules = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
   email: [
     { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+    {
+      pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      message: '邮箱格式不正确，请输入有效的邮箱地址',
+      trigger: 'blur'
+    }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度为6-20位', trigger: 'blur' }
+    { min: 6, max: 20, message: '密码长度为6-20位', trigger: 'blur' },
+    {
+      pattern: /^(?=.*[a-zA-Z])(?=.*\d)/,
+      message: '密码必须包含字母和数字',
+      trigger: 'blur'
+    }
   ]
 };
 
