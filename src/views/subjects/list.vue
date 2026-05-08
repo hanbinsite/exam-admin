@@ -4,11 +4,13 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchCreateSubject, fetchDeleteSubject, fetchSubjectList, fetchUpdateSubject } from '@/service/api';
+import { useExamStore } from '@/store/modules/exam';
 import { useAuth } from '@/hooks/business/auth';
 
 defineOptions({ name: 'SubjectList' });
 
 const { hasAuth } = useAuth();
+const examStore = useExamStore();
 
 const loading = ref(false);
 const subjects = ref<Exam.Subject.Subject[]>([]);
@@ -99,6 +101,7 @@ async function handleSubmit() {
         ElMessage.success('更新成功');
         dialogVisible.value = false;
         loadSubjects();
+        examStore.loadSubjects(true);
       }
     } else {
       const { error } = await fetchCreateSubject({
@@ -112,6 +115,7 @@ async function handleSubmit() {
         ElMessage.success('创建成功');
         dialogVisible.value = false;
         loadSubjects();
+        examStore.loadSubjects(true);
       }
     }
   } finally {
@@ -125,6 +129,7 @@ async function handleDelete(row: Exam.Subject.Subject) {
   if (!error) {
     ElMessage.success('删除成功');
     loadSubjects();
+    examStore.loadSubjects(true);
   }
 }
 
@@ -133,6 +138,7 @@ async function handleToggleActive(row: Exam.Subject.Subject) {
   if (!error) {
     ElMessage.success('状态更新成功');
     loadSubjects();
+    examStore.loadSubjects(true);
   }
 }
 
