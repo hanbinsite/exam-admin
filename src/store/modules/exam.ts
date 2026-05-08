@@ -8,6 +8,7 @@ export const useExamStore = defineStore(SetupStoreId.Exam, () => {
   const subjects = ref<Exam.Subject.Subject[]>([]);
   const currentSubjectId = ref<string>(localStg.get('currentSubjectId') || '');
   const loading = ref(false);
+  const subjectsLoaded = ref(false);
 
   const currentSubject = computed(() =>
     subjects.value.find((s: Exam.Subject.Subject) => s.id === currentSubjectId.value)
@@ -17,11 +18,13 @@ export const useExamStore = defineStore(SetupStoreId.Exam, () => {
     localStg.set('currentSubjectId', val);
   });
 
-  async function loadSubjects() {
+  async function loadSubjects(force = false) {
+    if (subjectsLoaded.value && !force) return;
     loading.value = true;
     const { data, error } = await fetchSubjectList();
     if (!error && data) {
       subjects.value = data.items;
+      subjectsLoaded.value = true;
       if (!currentSubjectId.value && data.items.length > 0) {
         currentSubjectId.value = data.items[0].id;
       }
@@ -38,6 +41,7 @@ export const useExamStore = defineStore(SetupStoreId.Exam, () => {
     currentSubjectId,
     currentSubject,
     loading,
+    subjectsLoaded,
     loadSubjects,
     setCurrentSubject
   };

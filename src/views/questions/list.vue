@@ -204,6 +204,24 @@ async function loadData() {
   loading.value = false;
 }
 
+async function loadQuestionList() {
+  if (!examStore.currentSubjectId) return;
+  loading.value = true;
+  const { data, error } = await fetchQuestionList(examStore.currentSubjectId, {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    type_id: filterTypeId.value,
+    difficulty: filterDifficulty.value || undefined,
+    category: filterCategory.value || undefined,
+    keyword: searchKeyword.value || undefined
+  });
+  if (!error && data) {
+    questions.value = data.items;
+    total.value = data.total;
+  }
+  loading.value = false;
+}
+
 watch(
   () => examStore.currentSubjectId,
   () => {
@@ -214,18 +232,18 @@ watch(
 
 function handleSearch() {
   currentPage.value = 1;
-  loadData();
+  loadQuestionList();
 }
 
 function handlePageChange(page: number) {
   currentPage.value = page;
-  loadData();
+  loadQuestionList();
 }
 
 function handleSizeChange(size: number) {
   pageSize.value = size;
   currentPage.value = 1;
-  loadData();
+  loadQuestionList();
 }
 
 function handleAdd() {

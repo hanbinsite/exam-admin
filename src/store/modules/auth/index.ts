@@ -148,6 +148,8 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
     const hasToken = getToken();
 
     if (hasToken) {
+      if (userInfo.id) return;
+
       const adminInfo = localStg.get('adminInfo') as Exam.Auth.AdminInfo | null;
       if (adminInfo) {
         Object.assign(userInfo, adminInfo);
