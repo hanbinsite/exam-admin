@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import { fetchScoreList, fetchScoreStats } from '@/service/api';
 import { useExamStore } from '@/store/modules/exam';
@@ -79,46 +79,36 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
-const distributionSegments = ref<{ label: string; count: number }[]>([]);
-
-watch(
-  () => stats.value,
-  statsVal => {
-    if (!statsVal?.score_distribution) {
-      distributionSegments.value = [];
-      return;
+const distributionSegments = computed(() => {
+  const dist = stats.value?.score_distribution;
+  if (!dist) return [];
+  const segments = [
+    { label: '0-20', min: 0, max: 20 },
+    { label: '20-40', min: 20, max: 40 },
+    { label: '40-60', min: 40, max: 60 },
+    { label: '60-80', min: 60, max: 80 },
+    { label: '80-100', min: 80, max: 100 }
+  ];
+  return segments.map(seg => {
+    let count = 0;
+    for (const [key, entryVal] of Object.entries(dist)) {
+      const score = Number(key);
+      if (!Number.isNaN(score) && score >= seg.min && score < seg.max) {
+        count += entryVal;
+      }
     }
-    const segments = [
-      { label: '0-20', min: 0, max: 20 },
-      { label: '20-40', min: 20, max: 40 },
-      { label: '40-60', min: 40, max: 60 },
-      { label: '60-80', min: 60, max: 80 },
-      { label: '80-100', min: 80, max: 100 }
-    ];
-    const dist = statsVal.score_distribution;
-    distributionSegments.value = segments.map(seg => {
-      let count = 0;
+    if (seg.label === '80-100') {
       for (const [key, entryVal] of Object.entries(dist)) {
         const score = Number(key);
-        if (!Number.isNaN(score) && score >= seg.min && score < seg.max) {
-          count += entryVal;
-        }
+        if (!Number.isNaN(score) && score === 100) count += entryVal;
       }
-      if (seg.label === '80-100') {
-        for (const [key, entryVal] of Object.entries(dist)) {
-          const score = Number(key);
-          if (!Number.isNaN(score) && score === 100) count += entryVal;
-        }
-      }
-      return { label: seg.label, count };
-    });
-  },
-  { deep: true }
-);
+    }
+    return { label: seg.label, count };
+  });
+});
 
-const maxDistCount = ref(0);
-watch(distributionSegments, val => {
-  maxDistCount.value = Math.max(...val.map(v => v.count), 1);
+const maxDistCount = computed(() => {
+  return Math.max(...distributionSegments.value.map(v => v.count), 1);
 });
 
 onMounted(() => {

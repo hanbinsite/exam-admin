@@ -135,22 +135,25 @@ function parseScoringRules(sRules: Record<string, Exam.ExamModule.ScoringRule>) 
 async function loadExams() {
   if (!examStore.currentSubjectId) return;
   loading.value = true;
-  const [examsRes, typesRes] = await Promise.all([
-    fetchExamList(examStore.currentSubjectId),
-    fetchQuestionTypeList(examStore.currentSubjectId)
-  ]);
-  if (!examsRes.error && examsRes.data) {
-    exams.value = examsRes.data;
-  }
-  if (!typesRes.error && typesRes.data) {
-    questionTypes.value = typesRes.data;
+  const { data, error } = await fetchExamList(examStore.currentSubjectId);
+  if (!error && data) {
+    exams.value = data;
   }
   loading.value = false;
 }
 
+async function loadTypes() {
+  if (!examStore.currentSubjectId) return;
+  const { data, error } = await fetchQuestionTypeList(examStore.currentSubjectId);
+  if (!error && data) {
+    questionTypes.value = data;
+  }
+}
+
 watch(
   () => examStore.currentSubjectId,
-  () => {
+  async () => {
+    await loadTypes();
     loadExams();
   }
 );
@@ -243,6 +246,7 @@ onMounted(() => {
     examStore.loadSubjects();
   }
   if (examStore.currentSubjectId) {
+    loadTypes();
     loadExams();
   }
 });
