@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
+import { MdEditor, MdPreview } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
 import { PERMISSION_CODES } from '@/constants/permissions';
 import {
   fetchCreateMaterial,
@@ -20,7 +22,6 @@ const { hasAuth } = useAuth();
 const materials = ref<Exam.Material.Material[]>([]);
 const loading = ref(false);
 const viewMode = ref<'table' | 'card'>('table');
-const contentPreview = ref(false);
 const activeTab = ref('');
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
 const dialogVisible = ref(false);
@@ -358,7 +359,7 @@ onMounted(() => {
       </div>
     </ElCard>
 
-    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @close="resetForm">
+    <ElDialog v-model="dialogVisible" :title="dialogTitle" width="900px" @close="resetForm">
       <ElForm ref="formRef" :model="form" :rules="rules" label-width="80px">
         <ElFormItem label="类型" prop="type">
           <ElSelect v-model="form.type" placeholder="选择或输入资料类型" filterable allow-create class="w-full">
@@ -373,24 +374,12 @@ onMounted(() => {
           <ElInput v-model="form.title" placeholder="资料标题" />
         </ElFormItem>
         <ElFormItem label="内容" prop="content">
-          <div class="w-full">
-            <div class="mb-8px">
-              <ElButton size="small" :type="contentPreview ? 'default' : 'primary'" @click="contentPreview = false">
-                编辑
-              </ElButton>
-              <ElButton size="small" :type="contentPreview ? 'primary' : 'default'" @click="contentPreview = true">
-                预览
-              </ElButton>
-            </div>
-            <ElInput
-              v-if="!contentPreview"
-              v-model="form.content"
-              type="textarea"
-              :rows="8"
-              placeholder="资料内容（支持HTML）"
-            />
-            <div v-else class="min-h-200px border rounded p-12px" v-html="form.content" />
-          </div>
+          <MdEditor
+            v-model="form.content"
+            language="zh-CN"
+            :toolbars-exclude="['github', 'htmlPreview']"
+            class="md-editor-h400"
+          />
         </ElFormItem>
         <ElFormItem label="摘要">
           <ElInput v-model="form.summary" type="textarea" :rows="2" placeholder="简要描述" />
@@ -428,7 +417,7 @@ onMounted(() => {
           <ElDescriptionsItem label="摘要">{{ currentMaterialDetail.summary || '-' }}</ElDescriptionsItem>
           <ElDescriptionsItem label="排序">{{ currentMaterialDetail.sort_order }}</ElDescriptionsItem>
         </ElDescriptions>
-        <div class="min-h-100px border rounded p-12px" v-html="currentMaterialDetail.content" />
+        <MdPreview :model-value="currentMaterialDetail.content" />
       </template>
     </ElDialog>
   </div>
@@ -437,5 +426,9 @@ onMounted(() => {
 <style scoped>
 .w-select {
   width: 200px;
+}
+
+.md-editor-h400 {
+  height: 400px;
 }
 </style>
